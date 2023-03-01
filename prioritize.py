@@ -40,7 +40,7 @@ if not token:
 
 JIRA = jira.client.JIRA(server=url, token_auth=token)
 
-query = f"key={args.feature}"
+query = f"key={args.feature} and type=Feature"
 print("Confirming the Feature exists:")
 print("  > " + query)
 results = JIRA.search_issues(query)
