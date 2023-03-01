@@ -59,12 +59,12 @@ if not epics:
     sys.exit(1)
 
 epic_keys = ",".join([epic.key for epic in epics])
-query = f'issueFunction in issuesInEpics("key in ({epic_keys})")'
-print("Looking up stories on those epics")
+query = f'issueFunction in issuesInEpics("key in ({epic_keys})") and project="{args.project}"'
+print(f"Looking up stories in {args.project} on those epics")
 print("  > " + query)
 stories = JIRA.search_issues(query)
 
-query = f"project={args.project} ORDER BY Rank Desc"
+query = f'project="{args.project}" ORDER BY Rank Desc'
 print("Finding current highest ranked story in the project")
 print("  > " + query)
 current_order = JIRA.search_issues(query)
