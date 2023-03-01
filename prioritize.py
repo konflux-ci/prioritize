@@ -76,6 +76,6 @@ for story in stories:
     if story == highest:
         print(f"  Ignoring {story.key}. It is already ranked highest.")
         continue
-    print("  Moving rank of {story.key} above {highest.key}")
+    print(f"  Moving rank of {story.key} above {highest.key}")
     JIRA.rank(issue=story.key, prev_issue=highest.key)
 print("Done.")
