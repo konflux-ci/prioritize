@@ -59,7 +59,7 @@ if not epics:
     sys.exit(1)
 
 epic_keys = ",".join([epic.key for epic in epics])
-query = f'issueFunction in issuesInEpics("key in ({epic_keys})") and project="{args.project}"'
+query = f'issueFunction in issuesInEpics("key in ({epic_keys})") and project="{args.project}" and statusCategory != Done'
 print(f"Looking up stories in {args.project} on those epics")
 print("  > " + query)
 stories = JIRA.search_issues(query)
