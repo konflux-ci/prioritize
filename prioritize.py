@@ -64,7 +64,7 @@ print(f"Looking up stories in {args.project} on those epics")
 print("  > " + query)
 stories = JIRA.search_issues(query)
 
-query = f'project="{args.project}" ORDER BY Rank Desc'
+query = f'project="{args.project}" ORDER BY Rank Asc'
 print("Finding current highest ranked story in the project")
 print("  > " + query)
 current_order = JIRA.search_issues(query)
