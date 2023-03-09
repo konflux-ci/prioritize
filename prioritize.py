@@ -1,5 +1,12 @@
 #!/usr/bin/env python
-""" If features are prioritized up or down - that rank doesn't cascade to stories.
+""" Automatically prioritize JIRA stories attached to a JIRA feature
+
+Problem: If features are prioritized up or down - that ranking doesn't cascade to stories.  In order
+to plan sprints, you manually have to open tons of tabs, compare the priority of Features, find all
+the epics on those features and then find all the stories for your team on those epics - and move
+them up in your sprint planning backlog individually. What a pain!
+
+This script attempts to automate that for you.
 
 This script accepts two arguments: a feature id and a project id.  All of the stories of all of the
 epics of the Feature will be prioritized up higher than the highest ranked story in the given
