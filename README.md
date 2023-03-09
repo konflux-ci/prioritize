@@ -12,6 +12,6 @@ $ deactivate
 ```bash
 $ source virtualenv/bin/activate
 $ export JIRA_TOKEN=...
-$ python priotize.py ASC STONE-248
+$ python prioritize.py ASC STONE-248
 $ deactivate
 ```
