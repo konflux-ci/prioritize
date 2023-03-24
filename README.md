@@ -19,4 +19,5 @@ A container is used to provide the base environment to develop and run the utili
 # Usage
 
 * Start a container (c.f. `Environment`)
-* Once in the container, run `./tools/release/hack/run.sh --token "$JIRA_TOKEN" --project "$PROJECT_NAME"`.
+* Once in the container, run `./tools/release/hack/setup_env.sh`.
+* You can then run the tool with `./src/prioritize.py --feature TEST-123 --project TEST --token Ab123cD456wx789yz0`
