@@ -21,15 +21,18 @@ import sys
 import click
 import jira
 
+PRIORITY = [
+    "Undefined",
+    "Minor",
+    "Normal",
+    "Major",
+    "Critical",
+    "Blocker",
+]
+
 
 @click.command(
     help=__doc__,
-)
-@click.option(
-    "-f",
-    "--feature-id",
-    help="Key of the feature we are prioritizing to the top",
-    required=True,
 )
 @click.option(
     "-p",
@@ -50,48 +53,66 @@ import jira
     help="JIRA URL",
     default=os.environ.get("JIRA_URL", "https://issues.redhat.com"),
 )
-def main(feature_id: str, project_id: str, token: str, url: str) -> None:
+def main(project_id: str, token: str, url: str) -> None:
     JIRA = jira.client.JIRA(server=url, token_auth=token)
 
-    query = f"key={feature_id} and type=Feature"
-    print("Confirming the Feature exists:")
-    print("  > " + query)
-    results = JIRA.search_issues(query)
-    if not results:
-        print(f"Feature not found via query: {query}")
-        sys.exit(1)
-    feature = results[0]
+    config = {
+        "Epic": {
+            "Parent Link": "customfield_12318341",
+        },
+        "Story": {
+            "Parent Link": "customfield_12311140",
+        },
+    }
 
-    query = f'issueFunction in portfolioChildrenOf("key={feature}")'
-    print("Looking up epics on the feature")
-    print("  > " + query)
-    epics = JIRA.search_issues(query)
-
-    if not epics:
-        print("No epics found.")
-        sys.exit(1)
-
-    epic_keys = ",".join([epic.key for epic in epics])
-    query = f'issueFunction in issuesInEpics("key in ({epic_keys})") and project="{project_id}" and statusCategory != Done'
-    print(f"Looking up stories in {project_id} on those epics")
-    print("  > " + query)
-    stories = JIRA.search_issues(query)
-
-    query = f'project="{project_id}" ORDER BY Rank Asc'
-    print("Finding current highest ranked story in the project")
-    print("  > " + query)
-    current_order = JIRA.search_issues(query)
-    highest = current_order[0]
-
-    print()
-    print(f"Moving {len(stories)} stories higher than {highest.key}")
-    for story in stories:
-        if story == highest:
-            print(f"  Ignoring {story.key}. It is already ranked highest.")
-            continue
-        print(f"  Moving rank of {url}/browse/{story.key} above {highest.key}")
-        JIRA.rank(issue=story.key, prev_issue=highest.key)
+    for issue_type, key_config in config.items():
+        process_type(JIRA, project_id, issue_type, key_config)
     print("Done.")
+
+
+def process_type(JIRA, project_id: str, issue_type: str, key_config: dict) -> None:
+    print("\n\n## Processing {key_type}")
+    for issue in get_issues(JIRA, project_id, issue_type):
+        parent_key = getattr(issue.fields, key_config["Parent Link"])
+        if parent_key is None:
+            comment(JIRA, issue.key, f"{issue_type} is missing the link to its parent.")
+            continue
+        parent = JIRA.issue(parent_key)
+        check_priority(JIRA, issue, parent)
+
+
+def get_issues(JIRA, project_id, issue_type):
+    query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY key ASC"
+    print("  ?", query)
+    results = JIRA.search_issues(query, maxResults=0)
+    if not results:
+        print(f"No Epic found via query: {query}")
+        sys.exit(1)
+    print("  =", [r.key for r in results], f"\n[{len(results)}]\n")
+    return results
+
+
+def comment(jira, key, comment):
+    print(f"[{key}] {comment}")
+    # jira.comment(epic.key, comment)
+
+
+def get_priority(issue):
+    return PRIORITY.index(issue.fields.priority.name)
+
+
+def check_priority(JIRA, issue, parent):
+    related_issues = [
+        JIRA.issue(il.raw["outwardIssue"]["key"])
+        for il in issue.fields.issuelinks
+        if il.type.name == "Blocks" and "outwardIssue" in il.raw.keys()
+    ]
+    related_issues.append(parent)
+    target_priority = max([get_priority(i) for i in related_issues])
+    if get_priority(issue) != target_priority:
+        comment(
+            JIRA, issue.key, "Issue priority does not match Parent or Blocked issues"
+        )
 
 
 if __name__ == "__main__":
