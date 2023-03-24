@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Automatically prioritize JIRA stories attached to a JIRA feature
 
 Problem: If features are prioritized up or down - that ranking doesn't cascade to stories.  In order
@@ -18,37 +18,42 @@ import argparse
 import os
 import sys
 
+import click
 import jira
 
 
-def get_args():
-    """
-    Parse args from the command-line.
-    """
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "project",
-        help="Name of the project we are prioritizing in",
-    )
-    parser.add_argument(
-        "feature",
-        help="Key of the feature we are prioritizing to the top",
-    )
-    return parser.parse_args()
-
-
-def main():
-    args = get_args()
-
-    url = os.environ.get("JIRA_URL", "https://issues.redhat.com")
-    token = os.environ.get("JIRA_TOKEN")
-    if not token:
-        print("Set JIRA_TOKEN environment variable to your JIRA personal access token")
-        sys.exit(1)
-
+@click.command(
+    help=__doc__,
+)
+@click.option(
+    "-f",
+    "--feature-id",
+    help="Key of the feature we are prioritizing to the top",
+    required=True,
+)
+@click.option(
+    "-p",
+    "--project-id",
+    help="Name of the project we are prioritizing in",
+    required=True,
+)
+@click.option(
+    "-t",
+    "--token",
+    help="JIRA personal access token",
+    default=os.environ.get("JIRA_TOKEN"),
+    required=True,
+)
+@click.option(
+    "-u",
+    "--url",
+    help="JIRA URL",
+    default=os.environ.get("JIRA_URL", "https://issues.redhat.com"),
+)
+def main(feature_id: str, project_id: str, token: str, url: str) -> None:
     JIRA = jira.client.JIRA(server=url, token_auth=token)
 
-    query = f"key={args.feature} and type=Feature"
+    query = f"key={feature_id} and type=Feature"
     print("Confirming the Feature exists:")
     print("  > " + query)
     results = JIRA.search_issues(query)
@@ -67,12 +72,12 @@ def main():
         sys.exit(1)
 
     epic_keys = ",".join([epic.key for epic in epics])
-    query = f'issueFunction in issuesInEpics("key in ({epic_keys})") and project="{args.project}" and statusCategory != Done'
-    print(f"Looking up stories in {args.project} on those epics")
+    query = f'issueFunction in issuesInEpics("key in ({epic_keys})") and project="{project_id}" and statusCategory != Done'
+    print(f"Looking up stories in {project_id} on those epics")
     print("  > " + query)
     stories = JIRA.search_issues(query)
 
-    query = f'project="{args.project}" ORDER BY Rank Asc'
+    query = f'project="{project_id}" ORDER BY Rank Asc'
     print("Finding current highest ranked story in the project")
     print("  > " + query)
     current_order = JIRA.search_issues(query)
@@ -87,6 +92,7 @@ def main():
         print(f"  Moving rank of {url}/browse/{story.key} above {highest.key}")
         JIRA.rank(issue=story.key, prev_issue=highest.key)
     print("Done.")
+
 
 if __name__ == "__main__":
     main()

@@ -86,7 +86,6 @@ parse_args() {
         usage
         exit 1
     fi
-    export JIRA_TOKEN
 }
 
 install_deps() {
@@ -95,7 +94,7 @@ install_deps() {
 }
 
 run() {
-    python3 "$PROJECT_DIR/src/prioritize.py" "$PROJECT_ID" "$FEATURE_ID"
+    python3 "$PROJECT_DIR/src/prioritize.py" --feature-id "$FEATURE_ID" --project-id "$PROJECT_ID" --token "$JIRA_TOKEN"
 }
 
 main() {
