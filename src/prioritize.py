@@ -54,30 +54,38 @@ PRIORITY = [
     default=os.environ.get("JIRA_URL", "https://issues.redhat.com"),
 )
 def main(project_id: str, token: str, url: str) -> None:
-    JIRA = jira.client.JIRA(server=url, token_auth=token)
+    jira_client = jira.client.JIRA(server=url, token_auth=token)
 
     config = {
         "issues": ["Epic", "Story"],
-        "Parent Link": get_parent_link_ids(JIRA),
+        "Parent Link": get_parent_link_ids(jira_client),
     }
 
     for issue_type in config["issues"]:
-        process_type(JIRA, project_id, issue_type, config)
+        process_type(jira_client, project_id, issue_type, config)
     print("Done.")
 
 
-def process_type(JIRA, project_id: str, issue_type: str, config: dict) -> None:
-    print("\n\n## Processing {key_type}")
-    parent_link = ""
-    for issue in get_issues(JIRA, project_id, issue_type):
-        if not parent_link:
-            parent_link=[f for f in config["Parent Link"] if hasattr(issue.fields, f)][0]
-        parent_key = getattr(issue.fields, parent_link)
-        if parent_key is None:
-            comment(JIRA, issue.key, f"{issue_type} is missing the link to its parent.")
-            continue
-        parent = JIRA.issue(parent_key)
-        check_priority(JIRA, issue, parent)
+def process_type(jira_client, project_id: str, issue_type: str, config: dict) -> None:
+    print(f"\n\n## Processing {issue_type}")
+    parent_link_field_id = ""
+    for issue in get_issues(jira_client, project_id, issue_type):
+        if not parent_link_field_id:
+            parent_link_field_id = [
+                f for f in config["Parent Link"] if hasattr(issue.fields, f)
+            ][0]
+        context = {
+            "comments": [],
+            "jira_client": jira_client,
+            "parent_issue": None,
+            "parent_link_field_id": parent_link_field_id,
+        }
+        check_parent_link(issue, context)
+        check_priority(issue, context)
+        if context["comments"]:
+            comment_text = "".join([f"\n  * {c}" for c in context["comments"]])
+            print(f"[{issue.key}] {comment_text}")
+            # jira_client.comment(issue.key, comment_text)
 
 
 def get_parent_link_ids(JIRA):
@@ -86,10 +94,11 @@ def get_parent_link_ids(JIRA):
     parent_link_ids = [f["id"] for f in all_the_fields if f["name"] in link_names]
     return parent_link_ids
 
-def get_issues(JIRA, project_id, issue_type):
+
+def get_issues(jira_client, project_id, issue_type):
     query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY key ASC"
     print("  ?", query)
-    results = JIRA.search_issues(query, maxResults=0)
+    results = jira_client.search_issues(query, maxResults=0)
     if not results:
         print(f"No Epic found via query: {query}")
         sys.exit(1)
@@ -97,27 +106,38 @@ def get_issues(JIRA, project_id, issue_type):
     return results
 
 
-def comment(jira, key, comment):
-    print(f"[{key}] {comment}")
-    # jira.comment(epic.key, comment)
+def get_max_priority(issues: list[jira.resources.Issue]) -> str:
+    priority_ids = [PRIORITY.index(i.fields.priority.name) for i in issues]
+    if priority_ids:
+        max_priority = max(priority_ids)
+    else:
+        max_priority = 0
+    return PRIORITY[max_priority]
 
 
-def get_priority(issue):
-    return PRIORITY.index(issue.fields.priority.name)
+def check_parent_link(issue: jira.resources.Issue, context: dict) -> None:
+    parent_key = getattr(issue.fields, context["parent_link_field_id"])
+    parent_issue = None
+    if parent_key is None:
+        context["comments"].append(f"Issue is missing the link to its parent.")
+    else:
+        context["parent_issue"] = context["jira_client"].issue(parent_key)
 
 
-def check_priority(JIRA, issue, parent):
+def check_priority(issue: jira.resources.Issue, context: dict) -> None:
     related_issues = [
-        JIRA.issue(il.raw["outwardIssue"]["key"])
+        context["jira_client"].issue(il.raw["outwardIssue"]["key"])
         for il in issue.fields.issuelinks
         if il.type.name == "Blocks" and "outwardIssue" in il.raw.keys()
     ]
-    related_issues.append(parent)
-    target_priority = max([get_priority(i) for i in related_issues])
-    if get_priority(issue) != target_priority:
-        comment(
-            JIRA, issue.key, "Issue priority does not match Parent or Blocked issues"
+    if context["parent_issue"] is not None:
+        related_issues.append(context["parent_issue"])
+    target_priority = get_max_priority(related_issues)
+    if issue.fields.priority.name != target_priority:
+        context["comments"].append(
+            f"Issue priority ({issue.fields.priority.name}) set to {target_priority}."
         )
+        # issue.update(priority={"name": target_priority})
 
 
 if __name__ == "__main__":
