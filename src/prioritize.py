@@ -57,29 +57,34 @@ def main(project_id: str, token: str, url: str) -> None:
     JIRA = jira.client.JIRA(server=url, token_auth=token)
 
     config = {
-        "Epic": {
-            "Parent Link": "customfield_12318341",
-        },
-        "Story": {
-            "Parent Link": "customfield_12311140",
-        },
+        "issues": ["Epic", "Story"],
+        "Parent Link": get_parent_link_ids(JIRA),
     }
 
-    for issue_type, key_config in config.items():
-        process_type(JIRA, project_id, issue_type, key_config)
+    for issue_type in config["issues"]:
+        process_type(JIRA, project_id, issue_type, config)
     print("Done.")
 
 
-def process_type(JIRA, project_id: str, issue_type: str, key_config: dict) -> None:
+def process_type(JIRA, project_id: str, issue_type: str, config: dict) -> None:
     print("\n\n## Processing {key_type}")
+    parent_link = ""
     for issue in get_issues(JIRA, project_id, issue_type):
-        parent_key = getattr(issue.fields, key_config["Parent Link"])
+        if not parent_link:
+            parent_link=[f for f in config["Parent Link"] if hasattr(issue.fields, f)][0]
+        parent_key = getattr(issue.fields, parent_link)
         if parent_key is None:
             comment(JIRA, issue.key, f"{issue_type} is missing the link to its parent.")
             continue
         parent = JIRA.issue(parent_key)
         check_priority(JIRA, issue, parent)
 
+
+def get_parent_link_ids(JIRA):
+    all_the_fields = JIRA.fields()
+    link_names = ["Epic Link", "Feature Link", "Parent Link"]
+    parent_link_ids = [f["id"] for f in all_the_fields if f["name"] in link_names]
+    return parent_link_ids
 
 def get_issues(JIRA, project_id, issue_type):
     query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY key ASC"
