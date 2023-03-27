@@ -17,7 +17,7 @@ usage() {
 Usage:
     ${0##*/} [options]
 
-Start the container. The container will be removed upon exit.
+Run the utility in a container. The container will be removed upon exit.
 
 Optional arguments:
     -d, --debug
@@ -40,6 +40,11 @@ parse_args() {
             usage
             exit 0
             ;;
+        --)
+            shift
+            OPTIONS=( "$@" )
+            break
+            ;;
         *)
             echo "Unknown argument: $1"
             usage
@@ -54,7 +59,7 @@ build_container() {
     podman build \
         -f "$SCRIPT_DIR/../container/Dockerfile" \
         --tag "$IMAGE_TAG" \
-        "$PROJECT_DIR/tools"
+        "$SCRIPT_DIR/.."
 }
 
 enter_container() {
@@ -63,12 +68,13 @@ enter_container() {
         --hostname "${IMAGE_TAG//:/__}" \
         --rm \
         --volume "$PROJECT_DIR":"/workspace":Z \
-        "$IMAGE_TAG"
+        "$IMAGE_TAG" \
+        "/workspace/src/prioritize.py" "${OPTIONS[@]}"
 }
 
 main() {
     parse_args "$@"
-    IMAGE_TAG="prioritize:developer"
+    IMAGE_TAG="prioritize:release"
     build_container
     enter_container
 }

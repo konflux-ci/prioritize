@@ -7,10 +7,6 @@ SCRIPT_DIR=$(
     cd "$(dirname "$0")" >/dev/null
     pwd
 )
-PROJECT_DIR=$(
-    cd "$SCRIPT_DIR/../../.." >/dev/null
-    pwd
-)
 
 usage() {
     echo "
@@ -52,7 +48,7 @@ parse_args() {
 
 install_deps() {
     pip install \
-        -r "$PROJECT_DIR/tools/release/dependencies/requirements.txt"
+        -r "$SCRIPT_DIR/../dependencies/requirements.txt"
 }
 
 main() {
