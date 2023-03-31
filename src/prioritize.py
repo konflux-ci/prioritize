@@ -14,23 +14,13 @@ project.
 
 """
 
-import argparse
 import os
-import sys
 
 import click
 import jira
 
-PRIORITY = [
-    "Undefined",
-    "Minor",
-    "Normal",
-    "Major",
-    "Critical",
-    "Blocker",
-]
-
-DRY_RUN = False
+import rules
+from utils.jira import get_issues
 
 
 @click.command(
@@ -61,117 +51,43 @@ DRY_RUN = False
     default=os.environ.get("JIRA_URL", "https://issues.redhat.com"),
 )
 def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
-    global DRY_RUN
-    DRY_RUN = dry_run
     jira_client = jira.client.JIRA(server=url, token_auth=token)
 
-    config = {
-        "issues": ["Epic", "Story"],
-        "Parent Link": get_parent_link_fields_ids(jira_client),
+    context = {
+        "issues": get_issues(jira_client, project_id, ["Epic", "Story"]),
     }
 
-    for issue_type in config["issues"]:
-        process_type(jira_client, project_id, issue_type, config)
+    for issue_type, issues in context["issues"].items():
+        print(f"\n\n## Processing {issue_type}")
+        process_type(jira_client, issues, dry_run)
     print("Done.")
 
 
-def process_type(
-    jira_client: jira.client.JIRA, project_id: str, issue_type: str, config: dict
-) -> None:
-    print(f"\n\n## Processing {issue_type}")
-
-    issues = get_issues(jira_client, project_id, issue_type)
-    parent_link_field_id = get_parent_link_field_id(issues, config["Parent Link"])
-
-    for issue in issues:
-        print(f"### {issue.key}")
+def process_type(jira_client: jira.client.JIRA, issues: dict, dry_run: bool) -> None:
+    count = len(issues)
+    for index, issue in enumerate(issues):
+        print(
+            f"\n### [{index+1}/{count}]\t{issue.key}: {issue.fields.summary}\t[{issue.fields.assignee}][{getattr(issue.fields, issue.raw['Field Ids']['Rank'])}]"
+        )
         context = {
             "comments": [],
-            "jira_client": jira_client,
-            "parent_issue": None,
-            "parent_link_field_id": parent_link_field_id,
             "updates": [],
         }
-        check_parent_link(issue, context)
-        check_priority(issue, context)
+        rules.check_parent_link(issue, context)
+        rules.check_priority(issue, context, dry_run)
 
-        set_non_compliant_flag(issue, context)
-        add_comment(issue, context)
-
-
-def get_parent_link_fields_ids(jira_client: jira.client.JIRA) -> list[str]:
-    all_the_fields = jira_client.fields()
-    link_names = ["Epic Link", "Feature Link", "Parent Link"]
-    parent_link_fields_ids = [
-        f["id"] for f in all_the_fields if f["name"] in link_names
-    ]
-    return parent_link_fields_ids
+        set_non_compliant_flag(issue, context, dry_run)
+        add_comment(issue, context, dry_run)
 
 
-def get_issues(
-    jira_client: jira.client.JIRA, project_id: str, issue_type: str
-) -> list[jira.resources.Issue]:
-    query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY key ASC"
-    print("  ?", query)
-    results = jira_client.search_issues(query, maxResults=0)
-    if not results:
-        print(f"No Epic found via query: {query}")
-        sys.exit(1)
-    print("  =", f"{len(results)} results:", [r.key for r in results])
-    return results
-
-
-def get_parent_link_field_id(
-    issues: list[jira.resources.Issue], field_ids: list[str]
-) -> str:
-    for issue in issues:
-        for field_id in field_ids:
-            if getattr(issue.fields, field_id) is not None:
-                return field_id
-    return ""
-
-
-def get_max_priority(issues: list[jira.resources.Issue]) -> str:
-    priority_ids = [PRIORITY.index(i.fields.priority.name) for i in issues]
-    if priority_ids:
-        max_priority = max(priority_ids)
-    else:
-        max_priority = 0
-    return PRIORITY[max_priority]
-
-
-def check_parent_link(issue: jira.resources.Issue, context: dict) -> None:
-    if context["parent_link_field_id"]:
-        parent_key = getattr(issue.fields, context["parent_link_field_id"])
-        if parent_key is not None:
-            context["parent_issue"] = context["jira_client"].issue(parent_key)
-    if context["parent_issue"] is None:
-        context["comments"].append(f"  * Issue is missing the link to its parent.")
-
-
-def check_priority(issue: jira.resources.Issue, context: dict) -> None:
-    related_issues = [
-        context["jira_client"].issue(il.raw["outwardIssue"]["key"])
-        for il in issue.fields.issuelinks
-        if il.type.name == "Blocks" and "outwardIssue" in il.raw.keys()
-    ]
-    if context["parent_issue"] is not None:
-        related_issues.append(context["parent_issue"])
-    target_priority = get_max_priority(related_issues)
-    if issue.fields.priority.name != target_priority:
-        context["updates"].append(
-            f"  > Issue priority set to '{target_priority}' (was '{issue.fields.priority.name}')."
-        )
-    if not DRY_RUN:
-        issue.update(priority={"name": target_priority})
-
-
-def set_non_compliant_flag(issue: jira.resources.Issue, context: dict) -> None:
+def set_non_compliant_flag(
+    issue: jira.resources.Issue, context: dict, dry_run: bool
+) -> None:
     non_compliant_flag = "Non-compliant"
     has_non_compliant_flag = non_compliant_flag in issue.fields.labels
     if context["comments"]:
         print("\n".join(context["comments"]))
-    if not DRY_RUN:
+    if not dry_run:
         if context["comments"]:
             if has_non_compliant_flag:
                 context["comments"].clear()
@@ -184,9 +100,9 @@ def set_non_compliant_flag(issue: jira.resources.Issue, context: dict) -> None:
             context["comments"].append("  * Issue is now compliant")
 
 
-def add_comment(issue: jira.resources.Issue, context: dict):
+def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool):
     if context["comments"]:
-        if not DRY_RUN:
+        if not dry_run:
             context["jira_client"].add_comment(
                 issue.key, "\n".join(context["comments"])
             )
