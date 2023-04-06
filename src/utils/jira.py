@@ -91,7 +91,7 @@ def update(issue, data):
     issue_context = issue.raw["Context"]
 
     # JIRA can be flaky, so retry a few times before failing
-    for _ in range(0,5):
+    for _ in range(0, 5):
         try:
             issue.update(**data)
             break

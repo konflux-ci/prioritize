@@ -6,4 +6,4 @@ RUN "/tmp/tools/release/hack/setup_env.sh" \
     && mkdir "/workspace"
 
 WORKDIR "/workspace"
-CMD ["/workspace/src/prioritize.py"]
+CMD ["/workspace/src/jira_hygiene.py"]

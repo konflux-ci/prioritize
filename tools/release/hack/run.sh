@@ -15,7 +15,7 @@ PROJECT_DIR=$(
 usage() {
     echo "
 Usage:
-    ${0##*/} [options]
+    ${0##*/} [options] -- [options]
 
 Run the utility in a container. The container will be removed upon exit.
 
@@ -26,7 +26,7 @@ Optional arguments:
         Display this message.
 
 Example:
-    ${0##*/} --debug
+    ${0##*/} --debug -- --project-id MYPROJECT --token '\$(cat ~/.config/tokens/jira.txt)'
 " >&2
 }
 
@@ -69,12 +69,12 @@ enter_container() {
         --rm \
         --volume "$PROJECT_DIR":"/workspace":Z \
         "$IMAGE_TAG" \
-        "/workspace/src/prioritize.py" "${OPTIONS[@]}"
+        "/workspace/src/jira_hygiene.py" "${OPTIONS[@]}"
 }
 
 main() {
     parse_args "$@"
-    IMAGE_TAG="prioritize:release"
+    IMAGE_TAG="jira_hygiene:release"
     build_container
     enter_container
 }
