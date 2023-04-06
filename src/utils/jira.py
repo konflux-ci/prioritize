@@ -17,7 +17,7 @@ def get_issues(
 def query_issues(
     jira_client: jira.client.JIRA, project_id: str, issue_type: str
 ) -> dict:
-    query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY rank DESC"
+    query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
     print("  ?", query)
     results = jira_client.search_issues(query, maxResults=0)
     if not results:
@@ -33,10 +33,15 @@ def preprocess(
     fields_ids = get_fields_ids(jira_client, issues)
 
     for issue in issues:
-        issue.raw["Field Ids"] = fields_ids
-        issue.raw["Related Issues"] = {}
-        issue.raw["Related Issues"]["Parent"] = get_parent(jira_client, issue)
-        issue.raw["Related Issues"]["Blocks"] = get_blocks(jira_client, issue)
+        issue.raw["Context"] = {}
+        issue.raw["Context"]["Field Ids"] = fields_ids
+        issue.raw["Context"]["Related Issues"] = {}
+        issue.raw["Context"]["Related Issues"]["Parent"] = get_parent(
+            jira_client, issue
+        )
+        issue.raw["Context"]["Related Issues"]["Blocks"] = get_blocks(
+            jira_client, issue
+        )
 
 
 def get_fields_ids(
@@ -65,7 +70,7 @@ def get_parent_link_field_id(
 
 
 def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
-    parent_link_field_id = issue.raw["Field Ids"]["Parent Link"]
+    parent_link_field_id = issue.raw["Context"]["Field Ids"]["Parent Link"]
     if parent_link_field_id:
         parent_key = getattr(issue.fields, parent_link_field_id)
         if parent_key is not None:
@@ -80,3 +85,18 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
         if il.type.name == "Blocks" and "outwardIssue" in il.raw.keys()
     ]
     return blocks
+
+
+def update(issue, data):
+    issue_context = issue.raw["Context"]
+
+    # JIRA can be flaky, so retry a few times before failing
+    for _ in range(0,5):
+        try:
+            issue.update(**data)
+            break
+        except jira.exceptions.JIRAError:
+            pass
+
+    # Restore the context that was deleted by the update
+    issue.raw["Context"] = issue_context

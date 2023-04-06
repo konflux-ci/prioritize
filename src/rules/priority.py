@@ -1,5 +1,7 @@
 import jira
 
+from utils.jira import update
+
 PRIORITY = [
     "Undefined",
     "Minor",
@@ -20,8 +22,8 @@ def _get_max_priority(issues: list[jira.resources.Issue]) -> str:
 
 
 def check_priority(issue: jira.resources.Issue, context: dict, dry_run: bool) -> None:
-    related_issues = list(issue.raw["Related Issues"]["Blocks"])
-    parent_issue = issue.raw["Related Issues"]["Parent"]
+    related_issues = list(issue.raw["Context"]["Related Issues"]["Blocks"])
+    parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
     if parent_issue is not None:
         related_issues.append(parent_issue)
     target_priority = _get_max_priority(related_issues)
@@ -30,4 +32,4 @@ def check_priority(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
             f"  > Issue priority set to '{target_priority}' (was '{issue.fields.priority.name}')."
         )
     if not dry_run:
-        issue.update(priority={"name": target_priority})
+        update(issue, {"priority": {"name": target_priority}})

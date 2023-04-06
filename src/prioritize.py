@@ -60,17 +60,20 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     for issue_type, issues in context["issues"].items():
         print(f"\n\n## Processing {issue_type}")
         process_type(jira_client, issues, dry_run)
-    print("Done.")
+    print("\nDone.")
 
 
-def process_type(jira_client: jira.client.JIRA, issues: dict, dry_run: bool) -> None:
+def process_type(
+    jira_client: jira.client.JIRA, issues: list[jira.resources.Issue], dry_run: bool
+) -> None:
     count = len(issues)
     for index, issue in enumerate(issues):
         print(
-            f"\n### [{index+1}/{count}]\t{issue.key}: {issue.fields.summary}\t[{issue.fields.assignee}][{getattr(issue.fields, issue.raw['Field Ids']['Rank'])}]"
+            f"\n### [{index+1}/{count}]\t{issue.key}: {issue.fields.summary}\t[{issue.fields.assignee}]"
         )
         context = {
             "comments": [],
+            "jira_client": jira_client,
             "updates": [],
         }
         rules.check_parent_link(issue, context)
@@ -78,6 +81,7 @@ def process_type(jira_client: jira.client.JIRA, issues: dict, dry_run: bool) -> 
 
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run)
+    rules.check_rank(issues, context, dry_run)
 
 
 def set_non_compliant_flag(
