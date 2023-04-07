@@ -1,6 +1,6 @@
 import jira
 
-from utils.jira import update
+from utils.jira import refresh, update
 
 PRIORITY = [
     "Undefined",
@@ -25,6 +25,7 @@ def check_priority(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
     related_issues = list(issue.raw["Context"]["Related Issues"]["Blocks"])
     parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
     if parent_issue is not None:
+        refresh(parent_issue)
         related_issues.append(parent_issue)
     target_priority = _get_max_priority(related_issues)
     if issue.fields.priority.name != target_priority:

@@ -74,7 +74,12 @@ def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
     if parent_link_field_id:
         parent_key = getattr(issue.fields, parent_link_field_id)
         if parent_key is not None:
-            return jira_client.issue(parent_key)
+            # JIRA can be flaky, so retry a few times before failing
+            for _ in range(0, 5):
+                try:
+                    return jira_client.issue(parent_key)
+                except jira.exceptions.JIRAError:
+                    pass
     return None
 
 
@@ -87,8 +92,12 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
     return blocks
 
 
-def update(issue, data):
-    issue_context = issue.raw["Context"]
+def refresh(issue: jira.resources.Issue) -> None:
+    update(issue, {})
+
+
+def update(issue: jira.resources.Issue, data: dict) -> None:
+    issue_context = issue.raw.get("Context")
 
     # JIRA can be flaky, so retry a few times before failing
     for _ in range(0, 5):
@@ -99,4 +108,5 @@ def update(issue, data):
             pass
 
     # Restore the context that was deleted by the update
-    issue.raw["Context"] = issue_context
+    if issue_context:
+        issue.raw["Context"] = issue_context

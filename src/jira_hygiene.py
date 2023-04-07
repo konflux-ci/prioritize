@@ -22,7 +22,7 @@ import click
 import jira
 
 import rules
-from utils.jira import get_issues
+from utils.jira import get_issues, update
 
 
 @click.command(
@@ -99,10 +99,10 @@ def set_non_compliant_flag(
                 context["comments"].clear()
             else:
                 issue.fields.labels.append(non_compliant_flag)
-                issue.update(fields={"labels": issue.fields.labels})
+                update(issue, {"fields": {"labels": issue.fields.labels}})
         elif not context["comments"] and has_non_compliant_flag:
             issue.fields.labels.remove(non_compliant_flag)
-            issue.update(fields={"labels": issue.fields.labels})
+            update(issue, {"fields": {"labels": issue.fields.labels}})
             context["comments"].append("  * Issue is now compliant")
 
 
