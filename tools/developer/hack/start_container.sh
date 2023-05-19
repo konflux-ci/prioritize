@@ -68,7 +68,7 @@ enter_container() {
 
 main() {
     parse_args "$@"
-    IMAGE_TAG="prioritize:developer"
+    IMAGE_TAG="jira_hygiene:developer"
     build_container
     enter_container
 }

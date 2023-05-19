@@ -1,9 +1,15 @@
-# Prioritize
-JIRA utility that enforces the following rules:
-* All Stories are linked to an Epic.
-* All Stories have a priority greater or equal to their Epic.
-* All Epics are linked to a Feature.
-* All Epics have a priority greater or equal to their Feature.
+# JIRA Hygiene
+Issues are expected to satisfy the following constraing:
+* Hierarchy:
+  * Epic must have a parent issue. The issue can be of any type.
+  * Stories must have a parent Epic.
+* Priority
+  * An issue priority must match the highest priority of:
+    * its parent
+    * any of the issues blocked by this issue.
+* Ranking
+  * When 2 child issues belong to the same project, and their parent issues also belong to the
+    same project, the child issues ranking must reflect the ranking of the parent issues.
 
 ## Development Environment
 A container is used to provide the base environment to develop and run the utility.
@@ -14,4 +20,4 @@ A container is used to provide the base environment to develop and run the utili
 ## Runtime Environment
 A container is used to provide the base environment to run the utility.
 
-* Run `./tools/release/hack/run.sh -- [options]`.
+* Run `./tools/release/hack/run.sh -- --project-id MYPROJECT --token '\$(cat ~/.config/tokens/jira.txt)'`.
