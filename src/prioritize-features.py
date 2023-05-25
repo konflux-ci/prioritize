@@ -88,13 +88,19 @@ def main(dry_run: bool, label: str, project_id: str, token: str, url: str) -> No
 
 
 def process_type(
-    jira_client: jira.client.JIRA, label: str, project_id: str, issue_type: str, config: dict
+    jira_client: jira.client.JIRA,
+    label: str,
+    project_id: str,
+    issue_type: str,
+    config: dict,
 ) -> None:
     print(f"\n\n## Processing {issue_type}")
 
     priorities = PRIORITY
     issues = get_issues(jira_client, label, issue_type)
-    top_issues = get_highest_ranked_issues(jira_client, priorities, project_id, issue_type)
+    top_issues = get_highest_ranked_issues(
+        jira_client, priorities, project_id, issue_type
+    )
 
     for issue in issues:
         print(f"### {issue.key}")
@@ -108,9 +114,12 @@ def process_type(
 
 
 def get_highest_ranked_issues(
-    jira_client: jira.client.JIRA, priorities: list[str], project_id: str, issue_type: str
+    jira_client: jira.client.JIRA,
+    priorities: list[str],
+    project_id: str,
+    issue_type: str,
 ) -> dict:
-    """ Return a dict of the highest ranked issues with each priority """
+    """Return a dict of the highest ranked issues with each priority"""
     results = {}
     for priority in priorities:
         query = f"priority={priority} AND project={project_id} AND type={issue_type} ORDER BY Rank ASC"
@@ -148,7 +157,9 @@ def check_rank(issue: jira.resources.Issue, context: dict, top_issues: dict) -> 
     priority = issue.fields.priority.name
     top_issue = top_issues[priority]
     top_issues[priority] = issue
-    context["updates"].append(f"  > Issue rank of {issue.key} moved above {top_issue.key}")
+    context["updates"].append(
+        f"  > Issue rank of {issue.key} moved above {top_issue.key}"
+    )
     if not DRY_RUN:
         context["jira_client"].rank(issue.key, next_issue=top_issue.key)
 
