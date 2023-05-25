@@ -9,10 +9,11 @@ them above other features of the same priority field setting. What a pain!
 
 This script attempts to automate that for you.
 
-This script accepts one argument: a label. All of the features in that label will be prioritized up
-higher than the highest ranked feature for each priority-field tier. (e.g., all Blocker features in
-the label will be ranked above all other Blocker features. All Critical features in the label will
-be ranked above all other Critical features. All Major features etc..)
+This script accepts two arguments: a label and a project. All of the features in that label, in that
+project will be prioritized up higher than the highest ranked feature for each priority-field tier.
+(e.g., all Blocker features in the label will be ranked above all other Blocker features. All
+Critical features in the label will be ranked above all other Critical features. All Major features
+etc..)
 
 """
 
@@ -97,7 +98,7 @@ def process_type(
     print(f"\n\n## Processing {issue_type}")
 
     priorities = PRIORITY
-    issues = get_issues(jira_client, label, issue_type)
+    issues = get_issues(jira_client, label, project_id, issue_type)
     top_issues = get_highest_ranked_issues(
         jira_client, priorities, project_id, issue_type
     )
@@ -132,9 +133,9 @@ def get_highest_ranked_issues(
 
 
 def get_issues(
-    jira_client: jira.client.JIRA, label: str, issue_type: str
+    jira_client: jira.client.JIRA, label: str, project_id: str, issue_type: str
 ) -> list[jira.resources.Issue]:
-    query = f"labels={label} AND resolution=Unresolved AND type={issue_type} ORDER BY Rank DESC"
+    query = f"labels={label} AND project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY Rank DESC"
     print("  ?", query)
     results = jira_client.search_issues(query, maxResults=0)
     if not results:
