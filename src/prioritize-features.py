@@ -150,7 +150,7 @@ def check_rank(issue: jira.resources.Issue, context: dict, top_issues: dict) -> 
     top_issue = top_issues[priority]
     top_issues[priority] = issue
     context["updates"].append(
-        f"  > Issue rank of {issue.key} moved above {top_issue.key}"
+        f"  > Issue rank of {issue.key}({priority}) moved above {top_issue.key}"
     )
     if not DRY_RUN:
         context["jira_client"].rank(issue.key, next_issue=top_issue.key)
