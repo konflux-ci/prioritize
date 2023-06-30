@@ -123,7 +123,7 @@ def get_highest_ranked_issues(
     """Return a dict of the highest ranked issues with each priority"""
     results = {}
     for priority in priorities:
-        query = f"priority={priority} AND project={project_id} AND type={issue_type} ORDER BY Rank ASC"
+        query = f"priority<={priority} AND project={project_id} AND type={issue_type} ORDER BY Rank ASC"
         issues = jira_client.search_issues(query, maxResults=1)
         if not issues:
             print(f"No {issue_type} found via query: {query}")
