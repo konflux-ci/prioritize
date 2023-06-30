@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-""" Automatically prioritize features of one label above others
+""" Automatically prioritize features of one parent above others
 
-Problem: If you use labels to track different categories of features and you want to prioritize all
-features of one label above others (treat it as the focus), you have to manually comb through the
-backlog and move the features up (increase their rank) for each one. If features in that label have
+Problem: If you use parent links to track different categories of features and you want to prioritize all
+features of one parent above others (treat it as the focus), you have to manually comb through the
+backlog and move the features up (increase their rank) for each one. If features under that parent have
 different priority-field settings, you don't want to move them all to the top; you just want to move
 them above other features of the same priority field setting. What a pain!
 
 This script attempts to automate that for you.
 
-This script accepts two arguments: a label and a project. All of the features in that label, in that
+This script accepts two arguments: a parent and a project. All of the features under that parent, in that
 project will be prioritized up higher than the highest ranked feature for each priority-field tier.
-(e.g., all Blocker features in the label will be ranked above all other Blocker features. All
-Critical features in the label will be ranked above all other Critical features. All Major features
+(e.g., all Blocker features under the parent will be ranked above all other Blocker features. All
+Critical features under the parent will be ranked above all other Critical features. All Major features
 etc..)
 
 """
@@ -45,9 +45,9 @@ DRY_RUN = False
     is_flag=True,
 )
 @click.option(
-    "-l",
-    "--label",
-    help="Label we are prioritizing",
+    "-p",
+    "--parent",
+    help="Parent we are prioritizing",
     required=True,
 )
 @click.option(
@@ -69,7 +69,7 @@ DRY_RUN = False
     help="JIRA URL",
     default=os.environ.get("JIRA_URL", "https://issues.redhat.com"),
 )
-def main(dry_run: bool, label: str, project_id: str, token: str, url: str) -> None:
+def main(dry_run: bool, parent: str, project_id: str, token: str, url: str) -> None:
     global DRY_RUN
     DRY_RUN = dry_run
     jira_client = jira.client.JIRA(server=url, token_auth=token)
@@ -84,13 +84,13 @@ def main(dry_run: bool, label: str, project_id: str, token: str, url: str) -> No
     }
 
     for issue_type in config["issues"]:
-        process_type(jira_client, label, project_id, issue_type, config)
+        process_type(jira_client, parent, project_id, issue_type, config)
     print("Done.")
 
 
 def process_type(
     jira_client: jira.client.JIRA,
-    label: str,
+    parent: str,
     project_id: str,
     issue_type: str,
     config: dict,
@@ -98,7 +98,7 @@ def process_type(
     print(f"\n\n## Processing {issue_type}")
 
     priorities = PRIORITY
-    issues = get_issues(jira_client, label, project_id, issue_type)
+    issues = get_issues(jira_client, parent, project_id, issue_type)
     top_issues = get_highest_ranked_issues(
         jira_client, priorities, project_id, issue_type
     )
@@ -133,9 +133,9 @@ def get_highest_ranked_issues(
 
 
 def get_issues(
-    jira_client: jira.client.JIRA, label: str, project_id: str, issue_type: str
+    jira_client: jira.client.JIRA, parent: str, project_id: str, issue_type: str
 ) -> list[jira.resources.Issue]:
-    query = f"labels={label} AND project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY Rank DESC"
+    query = f"\"Parent Link\"={parent} AND project={project_id} AND type={issue_type} ORDER BY Rank DESC"
     print("  ?", query)
     results = jira_client.search_issues(query, maxResults=0)
     if not results:
