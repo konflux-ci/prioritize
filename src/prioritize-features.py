@@ -145,15 +145,6 @@ def get_issues(
     return results
 
 
-def get_max_priority(issues: list[jira.resources.Issue]) -> str:
-    priority_ids = [PRIORITY.index(i.fields.priority.name) for i in issues]
-    if priority_ids:
-        max_priority = max(priority_ids)
-    else:
-        max_priority = 0
-    return PRIORITY[max_priority]
-
-
 def check_rank(issue: jira.resources.Issue, context: dict, top_issues: dict) -> None:
     priority = issue.fields.priority.name
     top_issue = top_issues[priority]
