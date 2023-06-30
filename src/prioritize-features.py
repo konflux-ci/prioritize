@@ -135,7 +135,7 @@ def get_highest_ranked_issues(
 def get_issues(
     jira_client: jira.client.JIRA, parent: str, project_id: str, issue_type: str
 ) -> list[jira.resources.Issue]:
-    query = f"\"Parent Link\"={parent} AND project={project_id} AND type={issue_type} ORDER BY Rank DESC"
+    query = f'"Parent Link"={parent} AND project={project_id} AND type={issue_type} ORDER BY Rank DESC'
     print("  ?", query)
     results = jira_client.search_issues(query, maxResults=0)
     if not results:
