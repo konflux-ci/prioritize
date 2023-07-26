@@ -49,12 +49,17 @@ def get_fields_ids(
 ) -> dict[str, str]:
     ids = {}
     all_the_fields = jira_client.fields()
+    # print(dir(issues[0].fields))
+    # debug_fields = '\n'.join(sorted([i['name'] for i in all_the_fields]))
+    # print(f"Fields:\n{debug_fields}")
 
     link_names = ["Epic Link", "Feature Link", "Parent Link"]
     candidates = [f["id"] for f in all_the_fields if f["name"] in link_names]
     ids["Parent Link"] = get_parent_link_field_id(issues, candidates)
 
     ids["Rank"] = [f["id"] for f in all_the_fields if f["name"] == "Rank"][0]
+    ids["Target Start"] = [f["id"] for f in all_the_fields if f["name"] == "Target start"][0]
+    ids["Target End"] = [f["id"] for f in all_the_fields if f["name"] == "Target end"][0]
 
     return ids
 

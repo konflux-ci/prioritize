@@ -20,6 +20,7 @@ import os
 
 import click
 import jira
+from collections import OrderedDict
 
 import rules
 from utils.jira import get_issues, update
@@ -55,31 +56,35 @@ from utils.jira import get_issues, update
 def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     jira_client = jira.client.JIRA(server=url, token_auth=token)
 
+    config = OrderedDict()
+    config["Epic"] = [rules.check_parent_link, rules.check_priority, rules.check_target_dates]
+    config["Story"] = [rules.check_parent_link, rules.check_priority]
+
     context = {
-        "issues": get_issues(jira_client, project_id, ["Epic", "Story"]),
+        "issues": get_issues(jira_client, project_id, config.keys()),
     }
 
     for issue_type, issues in context["issues"].items():
         print(f"\n\n## Processing {issue_type}")
-        process_type(jira_client, issues, dry_run)
+        process_type(jira_client, issues, config[issue_type], dry_run)
     print("\nDone.")
 
 
 def process_type(
-    jira_client: jira.client.JIRA, issues: list[jira.resources.Issue], dry_run: bool
+    jira_client: jira.client.JIRA, issues: list[jira.resources.Issue], checks: list[callable], dry_run: bool
 ) -> None:
     count = len(issues)
     for index, issue in enumerate(issues):
         print(
-            f"\n### [{index+1}/{count}]\t{issue.key}: {issue.fields.summary}\t[{issue.fields.assignee}]"
+            f"\n### [{index+1}/{count}]\t{issue.key}: {issue.fields.summary}\t[{issue.fields.assignee}/{issue.fields.status}]"
         )
         context = {
             "comments": [],
             "jira_client": jira_client,
             "updates": [],
         }
-        rules.check_parent_link(issue, context)
-        rules.check_priority(issue, context, dry_run)
+        for check in checks:
+            check(issue, context, dry_run)
 
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run)
