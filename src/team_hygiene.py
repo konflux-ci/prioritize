@@ -66,6 +66,7 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     config["Story"] = [
         rules.check_parent_link,
         rules.check_priority,
+        rules.check_quarter_label,
         rules.check_due_date,
     ]
 
