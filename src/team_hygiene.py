@@ -57,8 +57,17 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     jira_client = jira.client.JIRA(server=url, token_auth=token)
 
     config = OrderedDict()
-    config["Epic"] = [rules.check_parent_link, rules.check_priority, rules.check_target_dates]
-    config["Story"] = [rules.check_parent_link, rules.check_priority]
+    config["Epic"] = [
+        rules.check_parent_link,
+        rules.check_priority,
+        rules.check_due_date,
+        rules.check_target_dates,
+    ]
+    config["Story"] = [
+        rules.check_parent_link,
+        rules.check_priority,
+        rules.check_due_date,
+    ]
 
     context = {
         "issues": get_issues(jira_client, project_id, config.keys()),
@@ -71,7 +80,10 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
 
 
 def process_type(
-    jira_client: jira.client.JIRA, issues: list[jira.resources.Issue], checks: list[callable], dry_run: bool
+    jira_client: jira.client.JIRA,
+    issues: list[jira.resources.Issue],
+    checks: list[callable],
+    dry_run: bool,
 ) -> None:
     count = len(issues)
     for index, issue in enumerate(issues):

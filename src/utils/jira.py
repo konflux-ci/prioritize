@@ -58,8 +58,13 @@ def get_fields_ids(
     ids["Parent Link"] = get_parent_link_field_id(issues, candidates)
 
     ids["Rank"] = [f["id"] for f in all_the_fields if f["name"] == "Rank"][0]
-    ids["Target Start"] = [f["id"] for f in all_the_fields if f["name"] == "Target start"][0]
-    ids["Target End"] = [f["id"] for f in all_the_fields if f["name"] == "Target end"][0]
+    ids["Target Start Date"] = [
+        f["id"] for f in all_the_fields if f["name"] == "Target start"
+    ][0]
+    ids["Target End Date"] = [
+        f["id"] for f in all_the_fields if f["name"] == "Target end"
+    ][0]
+    ids["Due Date"] = [f["id"] for f in all_the_fields if f["name"] == "Due Date"][0]
 
     return ids
 
