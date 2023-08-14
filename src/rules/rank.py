@@ -28,6 +28,10 @@ Example:
         [Epic5], [Epic3], [Epic4], [Epic1, Epic2]
     The 2 blocks for FeatureA and FeatureB have been swapped, wihtout impacting the
     ranking of the other issues.
+
+Blocks can be moved and ranked lower if the parent status is not "In Progress".
+This helps prioritize the work that is currently on-going rather than future
+improvements that have been ranked very high.
 """
 import jira
 
@@ -38,96 +42,154 @@ def check_rank(
     dry_run: bool,
 ) -> None:
     """Rerank all issues"""
+    jira_client = context["jira_client"]
 
-    current_project_ranking, per_project_ranking = _get_ranking_data(issues)
+    # Get blocks and current ranking
+    blocks = Blocks(issues)
+    old_ranking = blocks.get_issues()
 
-    rank_field_id = issues[0].raw["Context"]["Field Ids"]["Rank"]
-    _sort_parents_by_rank_per_project(per_project_ranking, rank_field_id)
+    # Sort blocks and generate new ranking
+    blocks.sort()
+    new_ranking = blocks.get_issues()
 
-    # Assign rank to issues
-    if not dry_run:
-        jira_client = context["jira_client"]
-        _set_rank(jira_client, issues, current_project_ranking, per_project_ranking)
-
-
-def _get_ranking_data(issues: list[jira.resources.Issue]) -> tuple:
-    # Ranks of the "blocks" (c.f. doc in the file header)
-    current_project_ranking = []
-
-    # Issues are stored from highest ranked to lowest ranked
-    per_project_ranking = {None: []}
-
-    for issue in issues:
-        parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
-
-        # Issues without parent are stored in the "None" project
-        if parent_issue is None:
-            parent_issue_project = None
-            current_project_ranking.append(parent_issue_project)
-            per_project_ranking[parent_issue_project].append([issue])
-            continue
-
-        # Issues with a parent are stored with their parent project
-        parent_issue_project = parent_issue.fields.project.key
-        if parent_issue_project not in per_project_ranking.keys():
-            per_project_ranking[parent_issue_project] = []
-        if parent_issue not in per_project_ranking[parent_issue_project]:
-            current_project_ranking.append(parent_issue_project)
-            per_project_ranking[parent_issue_project].append(parent_issue)
-
-    return current_project_ranking, per_project_ranking
-
-
-def _sort_parents_by_rank_per_project(
-    per_project_ranking: dict, rank_field_id: str
-) -> None:
-    """Sort parents by rank on a per project basis
-
-    The "None" project is already sorted.
-    """
-    for project, issues in per_project_ranking.items():
-        if project is not None:
-            per_project_ranking[project] = sorted(
-                issues, key=lambda x: getattr(x.fields, rank_field_id)
-            )
+    # Apply new ranking
+    _set_rank(jira_client, old_ranking, new_ranking, dry_run)
 
 
 def _set_rank(
     jira_client: jira.client.JIRA,
-    issues: list[jira.resources.Issue],
-    current_project_ranking: list,
-    per_project_ranking: dict[str, list],
+    old_ranking: list[jira.resources.Issue],
+    new_ranking: list[jira.resources.Issue],
+    dry_run: bool,
 ) -> None:
     print("\n### Reranking issues")
     previous_issue = None
-    total = len(issues)
-    count = 0
+    total = len(new_ranking)
+    rerank = False
 
-    # Process "blocks"
-    for project in current_project_ranking:
-        if project is None:
-            issues_related_to_parent = per_project_ranking[None].pop(0)
-        else:
-            parent_issue = per_project_ranking[project].pop(0)
-            issues_related_to_parent = [
-                i
-                for i in issues
-                if i.raw["Context"]["Related Issues"]["Parent"] == parent_issue
-            ]
-
-            # Ensure that children are right after their parent when they belong to the
-            # same project
-            if (
-                parent_issue.fields.project.key
-                == issues_related_to_parent[0].fields.project.key
-            ):
-                previous_issue = parent_issue
-
-        # Rerank issues from the 'block'
-        for issue in issues_related_to_parent:
-            count += 1
-            if previous_issue is not None:
+    for index, issue in enumerate(new_ranking):
+        if issue != old_ranking[index]:
+            # Once we start reranking, we don't stop.
+            # This should avoid any edge case, but it's slow.
+            rerank = True
+        if rerank and previous_issue is not None:
+            if dry_run:
+                print(f"  > {issue.key}")
+            else:
                 jira_client.rank(issue=issue.key, prev_issue=previous_issue.key)
-                print(f"\r{100*count//total}%", end="", flush=True)
-            previous_issue = issue
-    print()
+        previous_issue = issue
+        print(f"\r{100*(index+1)//total}%", end="", flush=True)
+
+
+class Block:
+    """A block groups a parent and all its children issues"""
+
+    def __init__(self, parent):
+        self.parent_issue = parent
+        self.issues = []
+
+    def parent_is_inprogress(self):
+        if self.parent_issue is None:
+            return False
+        return self.parent_issue.fields.status.statusCategory.name == "In Progress"
+
+    def __str__(self) -> str:
+        p_key = self.parent_issue.key if self.parent_issue else None
+        i_keys = [i.key for i in self.issues]
+        return f"{p_key}: {', '.join(i_keys)}"
+
+
+class Blocks(list):
+    def __init__(self, issues: list[jira.resources.Issue]) -> None:
+        self.blocks = []
+        for issue in issues:
+            self.add_issue(issue)
+
+    def add_issue(self, issue: jira.resources.Issue) -> None:
+        """Add an issue to the right block"""
+        block = None
+        parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
+        if parent_issue is None:
+            block = Block(None)
+            self.blocks.append(block)
+        else:
+            addBlock = True
+            for block in self.blocks:
+                if block.parent_issue == parent_issue:
+                    addBlock = False
+                    break
+            if addBlock:
+                block = Block(parent_issue)
+                self.blocks.append(block)
+        block.issues.append(issue)
+
+    def get_issues(self) -> list[jira.resources.Issue]:
+        """Return a flat list of issues, in the order of appearance in the blocks"""
+        issues = []
+        for block in self.blocks:
+            if (
+                block.parent_issue is not None
+                and block.parent_issue.fields.project.key
+                == block.issues[0].fields.project.key
+            ):
+                issues.append(block.parent_issue)
+            for issue in block.issues:
+                issues.append(issue)
+        return issues
+
+    def sort(self):
+        self._sort_by_project_rank()
+        self._sort_by_status()
+
+    def _sort_by_project_rank(self):
+        """Rerank blocks based on the block's project rank.
+        Blocks are switch around, but a block can only be switched
+        with a block of the same parent project.
+        """
+        rank_field_id = self.blocks[0].issues[0].raw["Context"]["Field Ids"]["Rank"]
+
+        # For each project, generate a ranked list of issues
+        per_project_ranking = {None: []}
+        for block in self.blocks:
+            parent_issue = block.parent_issue
+            if parent_issue is None:
+                per_project_ranking[None].append(block)
+                continue
+
+            project_key = parent_issue.fields.project.key
+            project_ranking = per_project_ranking.get(project_key, [])
+
+            block_rank = getattr(parent_issue.fields, rank_field_id)
+            for index, i_block in enumerate(project_ranking):
+                if block_rank < getattr(i_block.parent_issue.fields, rank_field_id):
+                    project_ranking.insert(index, block)
+                    break
+            if block not in project_ranking:
+                project_ranking.append(block)
+
+            per_project_ranking[project_key] = project_ranking
+
+        # Go through all the blocks, selecting the highest issue for the
+        # given project.
+        ranked_blocks = []
+        for block in self.blocks:
+            project = None
+            if block.parent_issue:
+                project = block.parent_issue.fields.project.key
+            ranked_blocks.append(per_project_ranking[project].pop(0))
+
+        self.blocks = ranked_blocks
+
+    def _sort_by_status(self):
+        """Issues that are actively being worked on are more important
+        than issues marked as important but for which no work is on-going."""
+        inprogress = []
+        new = []
+
+        for block in self.blocks:
+            if block.parent_is_inprogress():
+                inprogress.append(block)
+            else:
+                new.append(block)
+
+        self.blocks = inprogress + new
