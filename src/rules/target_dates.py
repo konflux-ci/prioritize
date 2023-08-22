@@ -21,12 +21,12 @@ def check_target_dates(
 
     if start_date:
         if start_date < today and issue.fields.status in ["New", "Refinement"]:
-            context["updates"].append(f"  > Issue Target Start Date Date is obsolete.")
+            context["updates"].append(f"  > Issue Target Start Date is obsolete.")
     elif parent_is_inprogress:
-        context["updates"].append(f"  * Issue Target Start Date Date unset.")
+        context["updates"].append(f"  * Issue Target Start Date unset.")
     if end_date:
         # Query ensure the issue is not closed
         if end_date < today:
-            context["updates"].append(f"  * Issue Target End Date Date is obsolete.")
+            context["updates"].append(f"  * Issue Target End Date is obsolete.")
     elif parent_is_inprogress:
-        context["updates"].append(f"  * Issue Target End Date Date unset.")
+        context["updates"].append(f"  * Issue Target End Date unset.")
