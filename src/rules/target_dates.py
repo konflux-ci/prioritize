@@ -11,14 +11,22 @@ def check_target_dates(
     end_date_id = issue.raw["Context"]["Field Ids"]["Target End Date"]
     start_date = getattr(issue.fields, start_date_id)
     end_date = getattr(issue.fields, end_date_id)
+
+    parent_is_inprogress = False
+    parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
+    if parent_issue:
+        parent_is_inprogress = (
+            parent_issue.fields.status.statusCategory.name == "In Progress"
+        )
+
     if start_date:
         if start_date < today and issue.fields.status in ["New", "Refinement"]:
-            context["updates"].append(f"  > Issue Target Start Date Date is obsolete.")
-    else:
-        context["updates"].append(f"  * Issue Target Start Date Date unset.")
+            context["updates"].append(f"  > Issue Target Start Date is obsolete.")
+    elif parent_is_inprogress:
+        context["updates"].append(f"  * Issue Target Start Date unset.")
     if end_date:
         # Query ensure the issue is not closed
         if end_date < today:
-            context["updates"].append(f"  * Issue Target End Date Date is obsolete.")
-    else:
-        context["updates"].append(f"  * Issue Target End Date Date unset.")
+            context["updates"].append(f"  * Issue Target End Date is obsolete.")
+    elif parent_is_inprogress:
+        context["updates"].append(f"  * Issue Target End Date unset.")

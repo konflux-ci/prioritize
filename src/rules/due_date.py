@@ -29,3 +29,12 @@ def check_due_date(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
         context["updates"].append(f"  > Updating Due Date to {target_due_date}.")
         if not dry_run:
             update(issue, {"fields": {due_date_id: target_due_date}})
+
+    # This check is just a notification message to the attention of the Scrum Leader.
+    # The Target Date and Due Date should not be modified by the Assignee.
+    # The Program Managers should have automation that will surface the impact of the
+    # issue on their plans.
+    end_date_id = issue.raw["Context"]["Field Ids"]["Target End Date"]
+    end_date = getattr(issue.fields, end_date_id)
+    if end_date and target_due_date and end_date > target_due_date:
+        context["updates"].append(f"  ? Target Date exceeds Due Date. You may want to notify the Program Managers.")
