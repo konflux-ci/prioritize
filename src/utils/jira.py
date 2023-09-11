@@ -101,6 +101,18 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
     return blocks
 
 
+def get_version(
+    jira_client: jira.client.JIRA, project_key: str, version: str, description: str
+):
+    versions = jira_client.project_versions(project_key)
+    for v in versions:
+        if version == v.name:
+            return v
+    return jira_client.create_version(
+        project=project_key, name=version, description=description
+    )
+
+
 def refresh(issue: jira.resources.Issue) -> None:
     update(issue, {})
 
