@@ -70,12 +70,9 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
         rules.check_due_date,
     ]
 
-    context = {
-        "issues": get_issues(jira_client, project_id, config.keys()),
-    }
-
-    for issue_type, issues in context["issues"].items():
+    for issue_type in config.keys():
         print(f"\n\n## Processing {issue_type}")
+        issues = get_issues(jira_client, project_id, [issue_type])
         process_type(jira_client, issues, config[issue_type], dry_run)
     print("\nDone.")
 

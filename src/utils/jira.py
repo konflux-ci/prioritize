@@ -5,12 +5,11 @@ import jira
 
 def get_issues(
     jira_client: jira.client.JIRA, project_id: str, issue_types: list[str]
-) -> dict:
-    result = {}
+) -> list:
+    result = []
     for issue_type in issue_types:
-        issues = query_issues(jira_client, project_id, issue_type)
-        preprocess(jira_client, issues)
-        result[issue_type] = issues
+        result += query_issues(jira_client, project_id, issue_type)
+    preprocess(jira_client, result)
     return result
 
 
