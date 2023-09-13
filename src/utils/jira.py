@@ -5,12 +5,11 @@ import jira
 
 def get_issues(
     jira_client: jira.client.JIRA, project_id: str, issue_types: list[str]
-) -> dict:
-    result = {}
+) -> list:
+    result = []
     for issue_type in issue_types:
-        issues = query_issues(jira_client, project_id, issue_type)
-        preprocess(jira_client, issues)
-        result[issue_type] = issues
+        result += query_issues(jira_client, project_id, issue_type)
+    preprocess(jira_client, result)
     return result
 
 
@@ -100,6 +99,18 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
         if il.type.name == "Blocks" and "outwardIssue" in il.raw.keys()
     ]
     return blocks
+
+
+def get_version(
+    jira_client: jira.client.JIRA, project_key: str, version: str, description: str
+):
+    versions = jira_client.project_versions(project_key)
+    for v in versions:
+        if version == v.name:
+            return v
+    return jira_client.create_version(
+        project=project_key, name=version, description=description
+    )
 
 
 def refresh(issue: jira.resources.Issue) -> None:

@@ -37,4 +37,6 @@ def check_due_date(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
     end_date_id = issue.raw["Context"]["Field Ids"]["Target End Date"]
     end_date = getattr(issue.fields, end_date_id)
     if end_date and target_due_date and end_date > target_due_date:
-        context["updates"].append(f"  ? Target Date exceeds Due Date. You may want to notify the Program Managers.")
+        context["updates"].append(
+            f"  ? Target Date exceeds Due Date. You may want to notify the Program Managers."
+        )

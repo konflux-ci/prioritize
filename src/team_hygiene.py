@@ -62,6 +62,7 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
         rules.check_priority,
         rules.check_due_date,
         rules.check_target_dates,
+        rules.set_fix_version,
     ]
     config["Story"] = [
         rules.check_parent_link,
@@ -70,12 +71,9 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
         rules.check_due_date,
     ]
 
-    context = {
-        "issues": get_issues(jira_client, project_id, config.keys()),
-    }
-
-    for issue_type, issues in context["issues"].items():
+    for issue_type in config.keys():
         print(f"\n\n## Processing {issue_type}")
+        issues = get_issues(jira_client, project_id, [issue_type])
         process_type(jira_client, issues, config[issue_type], dry_run)
     print("\nDone.")
 
