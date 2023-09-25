@@ -22,7 +22,7 @@ import click
 import jira
 from collections import OrderedDict
 
-import rules
+import rules.team
 from utils.jira import get_issues, update
 
 
@@ -58,17 +58,17 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
 
     config = OrderedDict()
     config["Epic"] = [
-        rules.check_parent_link,
-        rules.check_priority,
-        rules.check_due_date,
-        rules.check_target_dates,
-        rules.set_fix_version,
+        rules.team.check_parent_link,
+        rules.team.check_priority,
+        rules.team.check_due_date,
+        rules.team.check_target_dates,
+        rules.team.set_fix_version,
     ]
     config["Story"] = [
-        rules.check_parent_link,
-        rules.check_priority,
-        rules.check_quarter_label,
-        rules.check_due_date,
+        rules.team.check_parent_link,
+        rules.team.check_priority,
+        rules.team.check_quarter_label,
+        rules.team.check_due_date,
     ]
 
     for issue_type in config.keys():
@@ -99,7 +99,7 @@ def process_type(
 
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run)
-    rules.check_rank(issues, context, dry_run)
+    rules.team.check_rank(issues, context, dry_run)
 
 
 def set_non_compliant_flag(
