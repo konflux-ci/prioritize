@@ -26,6 +26,29 @@ def query_issues(
     return results
 
 
+def get_child_issues(
+    jira_client: jira.client.JIRA, project_id: str, issue_types: list[str]
+) -> list:
+    result = []
+    for issue_type in issue_types:
+        result += query_child_issues(jira_client, project_id, issue_type)
+    preprocess(jira_client, result)
+    return result
+
+
+def query_child_issues(
+    jira_client: jira.client.JIRA, project_id: str, issue_type: str
+) -> dict:
+    query = f"issueFunction in portfolioChildrenOf('project={project_id}') AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
+    print("  ?", query)
+    results = jira_client.search_issues(query, maxResults=0)
+    if not results:
+        print(f"No {issue_type} found via query: {query}")
+        sys.exit(1)
+    print("  =", f"{len(results)} results:", [r.key for r in results])
+    return results
+
+
 def preprocess(
     jira_client: jira.client.JIRA, issues: list[jira.resources.Issue]
 ) -> None:
