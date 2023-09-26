@@ -14,19 +14,23 @@ def check_due_date(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
         return
 
     due_date_id = issue.raw["Context"]["Field Ids"]["Due Date"]
-    target_due_date = None
+    target_due_date, target_source = None, None
     for i in related_issues:
         related_due_date = getattr(i.fields, due_date_id)
         if related_due_date is None:
             continue
         if not target_due_date or target_due_date > related_due_date:
             target_due_date = related_due_date
+            target_source = i
 
     due_date = getattr(issue.fields, due_date_id)
     if (target_due_date is None and due_date) or (
         target_due_date and (not due_date or due_date != target_due_date)
     ):
-        context["updates"].append(f"  > Updating Due Date to {target_due_date}.")
+        if target_source:
+            context["updates"].append(f"  > Updating Due Date to {target_due_date}, inherited from {target_source.key}.")
+        else:
+            context["updates"].append(f"  > Updating Due Date to {target_due_date}.")
         if not dry_run:
             update(issue, {"fields": {due_date_id: target_due_date}})
 
