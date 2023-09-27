@@ -154,3 +154,23 @@ def update(issue: jira.resources.Issue, data: dict) -> None:
     # Restore the context that was deleted by the update
     if issue_context:
         issue.raw["Context"] = issue_context
+
+
+def set_non_compliant_flag(
+    issue: jira.resources.Issue, context: dict, dry_run: bool
+) -> None:
+    non_compliant_flag = "Non-compliant"
+    has_non_compliant_flag = non_compliant_flag in issue.fields.labels
+    if context["comments"]:
+        print("\n".join(context["comments"]))
+    if not dry_run:
+        if context["comments"]:
+            if has_non_compliant_flag:
+                context["comments"].clear()
+            else:
+                issue.fields.labels.append(non_compliant_flag)
+                update(issue, {"fields": {"labels": issue.fields.labels}})
+        elif not context["comments"] and has_non_compliant_flag:
+            issue.fields.labels.remove(non_compliant_flag)
+            update(issue, {"fields": {"labels": issue.fields.labels}})
+            context["comments"].append("  * Issue is now compliant")

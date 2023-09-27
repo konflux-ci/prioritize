@@ -23,7 +23,7 @@ import jira
 from collections import OrderedDict
 
 import rules.team
-from utils.jira import get_issues, update
+from utils.jira import get_issues, update, set_non_compliant_flag
 
 
 @click.command(
@@ -100,26 +100,6 @@ def process_type(
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run)
     rules.team.check_rank(issues, context, dry_run)
-
-
-def set_non_compliant_flag(
-    issue: jira.resources.Issue, context: dict, dry_run: bool
-) -> None:
-    non_compliant_flag = "Non-compliant"
-    has_non_compliant_flag = non_compliant_flag in issue.fields.labels
-    if context["comments"]:
-        print("\n".join(context["comments"]))
-    if not dry_run:
-        if context["comments"]:
-            if has_non_compliant_flag:
-                context["comments"].clear()
-            else:
-                issue.fields.labels.append(non_compliant_flag)
-                update(issue, {"fields": {"labels": issue.fields.labels}})
-        elif not context["comments"] and has_non_compliant_flag:
-            issue.fields.labels.remove(non_compliant_flag)
-            update(issue, {"fields": {"labels": issue.fields.labels}})
-            context["comments"].append("  * Issue is now compliant")
 
 
 def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool):

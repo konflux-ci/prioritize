@@ -23,7 +23,7 @@ import jira
 from collections import OrderedDict
 
 import rules.team
-from utils.jira import get_child_issues, update
+from utils.jira import get_child_issues, update, set_non_compliant_flag
 
 
 @click.command(
@@ -85,27 +85,8 @@ def process_type(
         for check in checks:
             check(issue, context, dry_run)
 
-        set_unreconciled_flag(issue, context, dry_run)
+        set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run)
-
-
-def set_unreconciled_flag(
-    issue: jira.resources.Issue, context: dict, dry_run: bool
-) -> None:
-    unreconciled_flag = "unreconciled"
-    has_unreconciled_flag = unreconciled_flag in issue.fields.labels
-    if context["comments"]:
-        print("\n".join(context["comments"]))
-    if not dry_run:
-        if context["comments"]:
-            if has_unreconciled_flag:
-                context["comments"].clear()
-            else:
-                issue.fields.labels.append(unreconciled_flag)
-                update(issue, {"fields": {"labels": issue.fields.labels}})
-        elif not context["comments"] and has_unreconciled_flag:
-            issue.fields.labels.remove(unreconciled_flag)
-            update(issue, {"fields": {"labels": issue.fields.labels}})
 
 
 def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool):
