@@ -64,6 +64,9 @@ def preprocess(
         issue.raw["Context"]["Related Issues"]["Blocks"] = get_blocks(
             jira_client, issue
         )
+        issue.raw["Context"]["Related Issues"]["Children"] = get_children(
+            jira_client, issue
+        )
 
 
 def get_fields_ids(
@@ -124,6 +127,27 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
         if il.type.name == "Blocks" and "outwardIssue" in il.raw.keys()
     ]
     return blocks
+
+
+def get_children(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
+    link_field_id = issue.raw["Context"]["Field Ids"]["Parent Link"].split("_")[-1]
+
+    query = (
+        f"cf[{link_field_id}]={issue.key} and resolution=Unresolved ORDER BY rank ASC"
+    )
+    # print("    ?", query)
+    # JIRA can be flaky, so retry a few times before failing
+    for _ in range(0, 5):
+        try:
+            results = jira_client.search_issues(query, maxResults=0)
+            break
+        except jira.exceptions.JIRAError:
+            pass
+    else:
+        raise
+
+    # print("    =", f"{len(results)} results:", [r.key for r in results])
+    return results
 
 
 def get_version(

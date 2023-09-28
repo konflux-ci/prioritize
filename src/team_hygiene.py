@@ -17,13 +17,13 @@ Issues that do not have a parent will be labelled as 'Non-compliant'.
 """
 
 import os
+from collections import OrderedDict
 
 import click
 import jira
-from collections import OrderedDict
 
 import rules.team
-from utils.jira import get_issues, update, set_non_compliant_flag
+from utils.jira import get_issues, set_non_compliant_flag, update
 
 
 @click.command(
