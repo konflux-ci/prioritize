@@ -112,6 +112,8 @@ def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
                     return jira_client.issue(parent_key)
                 except jira.exceptions.JIRAError:
                     pass
+            else:
+                raise
     return None
 
 
@@ -148,8 +150,12 @@ def update(issue: jira.resources.Issue, data: dict) -> None:
         try:
             issue.update(**data)
             break
-        except jira.exceptions.JIRAError:
-            pass
+        except jira.exceptions.JIRAError as e:
+            # If the status code is 400, then something is wrong. Likely not a flake.
+            if e.status_code == 400:
+                raise
+            else:
+                pass
 
     # Restore the context that was deleted by the update
     if issue_context:
