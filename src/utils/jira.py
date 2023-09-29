@@ -26,6 +26,29 @@ def query_issues(
     return results
 
 
+def get_child_issues(
+    jira_client: jira.client.JIRA, project_id: str, issue_types: list[str]
+) -> list:
+    result = []
+    for issue_type in issue_types:
+        result += query_child_issues(jira_client, project_id, issue_type)
+    preprocess(jira_client, result)
+    return result
+
+
+def query_child_issues(
+    jira_client: jira.client.JIRA, project_id: str, issue_type: str
+) -> dict:
+    query = f"issueFunction in portfolioChildrenOf('project={project_id}') AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
+    print("  ?", query)
+    results = jira_client.search_issues(query, maxResults=0)
+    if not results:
+        print(f"No {issue_type} found via query: {query}")
+        sys.exit(1)
+    print("  =", f"{len(results)} results:", [r.key for r in results])
+    return results
+
+
 def preprocess(
     jira_client: jira.client.JIRA, issues: list[jira.resources.Issue]
 ) -> None:
@@ -89,6 +112,8 @@ def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
                     return jira_client.issue(parent_key)
                 except jira.exceptions.JIRAError:
                     pass
+            else:
+                raise
     return None
 
 
@@ -125,9 +150,33 @@ def update(issue: jira.resources.Issue, data: dict) -> None:
         try:
             issue.update(**data)
             break
-        except jira.exceptions.JIRAError:
-            pass
+        except jira.exceptions.JIRAError as e:
+            # If the status code is 400, then something is wrong. Likely not a flake.
+            if e.status_code == 400:
+                raise
+            else:
+                pass
 
     # Restore the context that was deleted by the update
     if issue_context:
         issue.raw["Context"] = issue_context
+
+
+def set_non_compliant_flag(
+    issue: jira.resources.Issue, context: dict, dry_run: bool
+) -> None:
+    non_compliant_flag = "Non-compliant"
+    has_non_compliant_flag = non_compliant_flag in issue.fields.labels
+    if context["comments"]:
+        print("\n".join(context["comments"]))
+    if not dry_run:
+        if context["comments"]:
+            if has_non_compliant_flag:
+                context["comments"].clear()
+            else:
+                issue.fields.labels.append(non_compliant_flag)
+                update(issue, {"fields": {"labels": issue.fields.labels}})
+        elif not context["comments"] and has_non_compliant_flag:
+            issue.fields.labels.remove(non_compliant_flag)
+            update(issue, {"fields": {"labels": issue.fields.labels}})
+            context["comments"].append("  * Issue is now compliant")

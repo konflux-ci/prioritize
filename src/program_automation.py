@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
-""" Automatically prioritize/rank JIRA stories attached to a JIRA feature
+""" Automatically propagate attributes around the JIRA hierarchy
 
-Problem: If features are prioritized/ranked up or down - that action doesn't cascade to
-stories.  In order to plan sprints, you manually have to open tons of tabs, compare the
-priority/ranking of Features, find all the epics on those features and then find all the
-stories for your team on those epics - and move them up in your sprint planning backlog
-individually. What a pain!
+Problem: If a product manager sets a due date on a Feature, that due date should appear on all epics that are children of that Feature. If all teams set a "Target end" estimate on their epic, then the furthest out of those estimates should appear on the common Feature. Manually copying all of that stuff is a pain!
 
 This script attempts to automate that for you.
 
-This script accepts two arguments: a project id and a token.  All of the stories of
-all of the epics of the project will be checked against their parent to calculate the
-right priority/rank.
+This script accepts two arguments: a project id and a token.
 
-Issues that do not have a parent will be labelled as 'Non-compliant'.
+* All of the epics of all of the features in that project will have their due dates aligned to the
+  Features that are their parents.
+* (In a future iteration of this script) all of the features in that project will have their "Target
+  end" dates aligned to the most distant "Target end" date set on their child epics.
 """
 
 import os
@@ -23,7 +20,7 @@ import jira
 from collections import OrderedDict
 
 import rules.team
-from utils.jira import get_issues, update, set_non_compliant_flag
+from utils.jira import get_child_issues, update, set_non_compliant_flag
 
 
 @click.command(
@@ -56,25 +53,13 @@ from utils.jira import get_issues, update, set_non_compliant_flag
 def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     jira_client = jira.client.JIRA(server=url, token_auth=token)
 
-    config = OrderedDict()
-    config["Epic"] = [
-        rules.team.check_parent_link,
-        rules.team.check_priority,
-        rules.team.check_due_date,
-        rules.team.check_target_dates,
-        rules.team.set_fix_version,
-    ]
-    config["Story"] = [
-        rules.team.check_parent_link,
-        rules.team.check_priority,
-        rules.team.check_quarter_label,
+    checks = [
         rules.team.check_due_date,
     ]
 
-    for issue_type in config.keys():
-        print(f"\n\n## Processing {issue_type}")
-        issues = get_issues(jira_client, project_id, [issue_type])
-        process_type(jira_client, issues, config[issue_type], dry_run)
+    print(f"\n\n## Processing epics")
+    issues = get_child_issues(jira_client, project_id, ["Epic"])
+    process_type(jira_client, issues, checks, dry_run)
     print("\nDone.")
 
 
@@ -99,7 +84,6 @@ def process_type(
 
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run)
-    rules.team.check_rank(issues, context, dry_run)
 
 
 def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool):
