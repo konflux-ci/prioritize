@@ -71,9 +71,14 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
         rules.team.check_due_date,
     ]
 
+    collectors = {
+        "Epic": get_issues,
+        "Story": get_issues,
+    }
     for issue_type in config.keys():
         print(f"\n\n## Processing {issue_type}")
-        issues = get_issues(jira_client, project_id, [issue_type])
+        collector = collectors[issue_type]
+        issues = collector(jira_client, project_id, [issue_type])
         process_type(jira_client, issues, config[issue_type], dry_run)
     print("\nDone.")
 

@@ -54,20 +54,23 @@ from utils.jira import get_child_issues, get_issues, set_non_compliant_flag, upd
 def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     jira_client = jira.client.JIRA(server=url, token_auth=token)
 
-    epic_checks = [
+    config = OrderedDict()
+    config["Epic"] = [
         rules.team.check_due_date,
     ]
-    feature_checks = [
+    config["Feature"] = [
         rules.program.check_target_end_date,
     ]
+    collectors = {
+        "Feature": get_issues,
+        "Epic": get_child_issues,
+    }
 
-    print(f"\n\n## Processing features")
-    issues = get_issues(jira_client, project_id, ["Feature"])
-    process_type(jira_client, issues, feature_checks, dry_run)
-
-    print(f"\n\n## Processing epics")
-    issues = get_child_issues(jira_client, project_id, ["Epic"])
-    process_type(jira_client, issues, epic_checks, dry_run)
+    for issue_type in config.keys():
+        print(f"\n\n## Processing {issue_type}")
+        collector = collectors[issue_type]
+        issues = collector(jira_client, project_id, [issue_type])
+        process_type(jira_client, issues, config[issue_type], dry_run)
 
     print("\nDone.")
 
