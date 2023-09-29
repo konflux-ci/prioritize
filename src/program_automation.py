@@ -14,13 +14,14 @@ This script accepts two arguments: a project id and a token.
 """
 
 import os
+from collections import OrderedDict
 
 import click
 import jira
-from collections import OrderedDict
 
+import rules.program
 import rules.team
-from utils.jira import get_child_issues, update, set_non_compliant_flag
+from utils.jira import get_child_issues, get_issues, set_non_compliant_flag, update
 
 
 @click.command(
@@ -53,13 +54,24 @@ from utils.jira import get_child_issues, update, set_non_compliant_flag
 def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     jira_client = jira.client.JIRA(server=url, token_auth=token)
 
-    checks = [
+    config = OrderedDict()
+    config["Epic"] = [
         rules.team.check_due_date,
     ]
+    config["Feature"] = [
+        rules.program.check_target_end_date,
+    ]
+    collectors = {
+        "Feature": get_issues,
+        "Epic": get_child_issues,
+    }
 
-    print(f"\n\n## Processing epics")
-    issues = get_child_issues(jira_client, project_id, ["Epic"])
-    process_type(jira_client, issues, checks, dry_run)
+    for issue_type in config.keys():
+        print(f"\n\n## Processing {issue_type}")
+        collector = collectors[issue_type]
+        issues = collector(jira_client, project_id, [issue_type])
+        process_type(jira_client, issues, config[issue_type], dry_run)
+
     print("\nDone.")
 
 

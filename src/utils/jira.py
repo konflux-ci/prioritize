@@ -17,12 +17,10 @@ def query_issues(
     jira_client: jira.client.JIRA, project_id: str, issue_type: str
 ) -> dict:
     query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
-    print("  ?", query)
-    results = jira_client.search_issues(query, maxResults=0)
+    results = _search(jira_client, query, verbose=True)
     if not results:
         print(f"No {issue_type} found via query: {query}")
         sys.exit(1)
-    print("  =", f"{len(results)} results:", [r.key for r in results])
     return results
 
 
@@ -40,12 +38,29 @@ def query_child_issues(
     jira_client: jira.client.JIRA, project_id: str, issue_type: str
 ) -> dict:
     query = f"issueFunction in portfolioChildrenOf('project={project_id}') AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
-    print("  ?", query)
-    results = jira_client.search_issues(query, maxResults=0)
+    results = _search(jira_client, query, verbose=True)
     if not results:
         print(f"No {issue_type} found via query: {query}")
         sys.exit(1)
-    print("  =", f"{len(results)} results:", [r.key for r in results])
+    return results
+
+
+def _search(jira_client: jira.client.JIRA, query: str, verbose: bool) -> list:
+    if verbose:
+        print("  ?", query)
+
+    # JIRA can be flaky, so retry a few times before failing
+    for _ in range(0, 5):
+        try:
+            results = jira_client.search_issues(query, maxResults=0)
+            break
+        except jira.exceptions.JIRAError:
+            pass
+    else:
+        raise
+
+    if verbose:
+        print("  =", f"{len(results)} results:", [r.key for r in results])
     return results
 
 
@@ -62,6 +77,9 @@ def preprocess(
             jira_client, issue
         )
         issue.raw["Context"]["Related Issues"]["Blocks"] = get_blocks(
+            jira_client, issue
+        )
+        issue.raw["Context"]["Related Issues"]["Children"] = get_children(
             jira_client, issue
         )
 
@@ -124,6 +142,15 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
         if il.type.name == "Blocks" and "outwardIssue" in il.raw.keys()
     ]
     return blocks
+
+
+def get_children(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
+    link_field_id = issue.raw["Context"]["Field Ids"]["Parent Link"].split("_")[-1]
+
+    query = (
+        f"cf[{link_field_id}]={issue.key} and resolution=Unresolved ORDER BY rank ASC"
+    )
+    return _search(jira_client, query, verbose=False)
 
 
 def get_version(
