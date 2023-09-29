@@ -12,9 +12,6 @@ def check_target_end_date(
 ) -> None:
     children = issue.raw["Context"]["Related Issues"]["Children"]
 
-    if not children:
-        return
-
     target_end_id = issue.raw["Context"]["Field Ids"]["Target End Date"]
     target_end_date, target_source = None, None
     for i in children:
