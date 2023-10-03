@@ -50,14 +50,15 @@ def _search(jira_client: jira.client.JIRA, query: str, verbose: bool) -> list:
         print("  ?", query)
 
     # JIRA can be flaky, so retry a few times before failing
+    error = None
     for _ in range(0, 5):
         try:
             results = jira_client.search_issues(query, maxResults=0)
             break
-        except jira.exceptions.JIRAError:
-            pass
+        except jira.exceptions.JIRAError as ex:
+            error = ex.text
     else:
-        raise
+        raise RuntimeError(f"'{query}' returned: {error}")
 
     if verbose:
         print("  =", f"{len(results)} results:", [r.key for r in results])
