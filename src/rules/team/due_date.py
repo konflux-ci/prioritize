@@ -1,5 +1,6 @@
-import jira
 from time import strftime
+
+import jira
 from utils.jira import refresh, update
 
 today = strftime("%Y-%m-%d")
@@ -28,7 +29,9 @@ def check_due_date(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
         target_due_date and (not due_date or due_date != target_due_date)
     ):
         if target_source:
-            context["updates"].append(f"  > Updating Due Date to {target_due_date}, inherited from {target_source.key}.")
+            context["updates"].append(
+                f"  > Updating Due Date to {target_due_date}, inherited from {target_source.key}."
+            )
         else:
             context["updates"].append(f"  > Updating Due Date to {target_due_date}.")
         if not dry_run:
