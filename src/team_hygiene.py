@@ -16,14 +16,12 @@ right priority/rank.
 Issues that do not have a parent will be labelled as 'Non-compliant'.
 """
 
-import os
-from collections import OrderedDict
+import importlib
 
 import click
 import jira
-
-import rules.team
-from utils.jira import get_issues, set_non_compliant_flag, update
+from utils.configuration import Config
+from utils.jira import set_non_compliant_flag
 
 
 @click.command(
@@ -35,51 +33,28 @@ from utils.jira import get_issues, set_non_compliant_flag, update
     is_flag=True,
 )
 @click.option(
-    "-p",
-    "--project-id",
-    help="Name of the project we are prioritizing in",
+    "-c",
+    "--config-file",
+    help="Configuration file",
     required=True,
 )
-@click.option(
-    "-t",
-    "--token",
-    help="JIRA personal access token",
-    default=os.environ.get("JIRA_TOKEN"),
-    required=True,
-)
-@click.option(
-    "-u",
-    "--url",
-    help="JIRA URL",
-    default=os.environ.get("JIRA_URL", "https://issues.redhat.com"),
-)
-def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
-    jira_client = jira.client.JIRA(server=url, token_auth=token)
+def main(dry_run: bool, config_file: str) -> None:
+    config = Config.load(config_file)
+    Config.validate(config)
 
-    config = OrderedDict()
-    config["Epic"] = [
-        rules.team.check_parent_link,
-        rules.team.check_priority,
-        rules.team.check_due_date,
-        rules.team.check_target_dates,
-        rules.team.set_fix_version,
-    ]
-    config["Story"] = [
-        rules.team.check_parent_link,
-        rules.team.check_priority,
-        rules.team.check_quarter_label,
-        rules.team.check_due_date,
-    ]
-
-    collectors = {
-        "Epic": get_issues,
-        "Story": get_issues,
-    }
-    for issue_type in config.keys():
+    jira_client = jira.client.JIRA(
+        server=config["jira"]["url"], token_auth=config["jira"]["token"]
+    )
+    jira_module = importlib.import_module("utils.jira")
+    rules_team_module = importlib.import_module("rules.team")
+    for issue_type, issue_config in config["team_hygiene"]["issues"].items():
         print(f"\n\n## Processing {issue_type}")
-        collector = collectors[issue_type]
-        issues = collector(jira_client, project_id, [issue_type])
-        process_type(jira_client, issues, config[issue_type], dry_run)
+        collector = getattr(jira_module, issue_config.get("collector", "get_issues"))
+        rules = [
+            getattr(rules_team_module, rule) for rule in issue_config.get("rules", [])
+        ]
+        issues = collector(jira_client, config["jira"]["project-id"], [issue_type])
+        process_type(jira_client, issues, rules, dry_run)
     print("\nDone.")
 
 
