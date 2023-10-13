@@ -1,9 +1,8 @@
-FROM python:3.11
+FROM docker.io/python:3.11
 
-COPY "." "/tmp/tools/release"
+COPY "./tools" "/tmp/tools"
 
-RUN "/tmp/tools/release/hack/setup_env.sh" \
-    && mkdir "/workspace"
+RUN "/tmp/tools/release/hack/setup_env.sh"
 
 WORKDIR "/workspace"
 CMD ["/workspace/src/jira_hygiene.py"]

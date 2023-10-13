@@ -1,9 +1,8 @@
-FROM python:3.11
+FROM mcr.microsoft.com/devcontainers/python:1-3.11-bookworm
 
-COPY "." "/tmp/tools"
+COPY "./tools" "/tmp/tools"
 
-RUN "/tmp/tools/developer/hack/setup_env.sh" \
-    && mkdir "/workspace"
+RUN "/tmp/tools/developer/hack/setup_env.sh"
 
 ENV PATH="/workspace/src:/workspace/tools/developer/hack:$PATH"
 WORKDIR "/workspace"
