@@ -9,7 +9,7 @@
             "type": "python",
             "request": "launch",
             "program": "src/team_hygiene.py",
-            "args": ["--project-id", "", "--token", ""],
+            "args": ["--config-file", "config/debug.yaml"],
             "console": "integratedTerminal",
             "justMyCode": true
         }
