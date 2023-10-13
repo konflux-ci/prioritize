@@ -3,12 +3,8 @@ import sys
 import jira
 
 
-def get_issues(
-    jira_client: jira.client.JIRA, project_id: str, issue_types: list[str]
-) -> list:
-    result = []
-    for issue_type in issue_types:
-        result += query_issues(jira_client, project_id, issue_type)
+def get_issues(jira_client: jira.client.JIRA, project_id: str, issue_type: str) -> list:
+    result = query_issues(jira_client, project_id, issue_type)
     preprocess(jira_client, result)
     return result
 
@@ -94,10 +90,6 @@ def get_fields_ids(
     # debug_fields = '\n'.join(sorted([i['name'] for i in all_the_fields]))
     # print(f"Fields:\n{debug_fields}")
 
-    link_names = ["Epic Link", "Feature Link", "Parent Link"]
-    candidates = [f["id"] for f in all_the_fields if f["name"] in link_names]
-    ids["Parent Link"] = get_parent_link_field_id(issues, candidates)
-
     ids["Rank"] = [f["id"] for f in all_the_fields if f["name"] == "Rank"][0]
     ids["Target Start Date"] = [
         f["id"] for f in all_the_fields if f["name"] == "Target start"
@@ -110,30 +102,12 @@ def get_fields_ids(
     return ids
 
 
-def get_parent_link_field_id(
-    issues: list[jira.resources.Issue], field_ids: list[str]
-) -> str:
-    for issue in issues:
-        for field_id in field_ids:
-            if getattr(issue.fields, field_id) is not None:
-                return field_id
-    return ""
-
-
 def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
-    parent_link_field_id = issue.raw["Context"]["Field Ids"]["Parent Link"]
-    if parent_link_field_id:
-        parent_key = getattr(issue.fields, parent_link_field_id)
-        if parent_key is not None:
-            # JIRA can be flaky, so retry a few times before failing
-            for _ in range(0, 5):
-                try:
-                    return jira_client.issue(parent_key)
-                except jira.exceptions.JIRAError:
-                    pass
-            else:
-                raise
-    return None
+    query = f'issue in parentIssuesOf("{issue.key}")'
+    results = _search(jira_client, query, verbose=False)
+    if not results:
+        return None
+    return results[0]
 
 
 def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
@@ -146,11 +120,7 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
 
 
 def get_children(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
-    link_field_id = issue.raw["Context"]["Field Ids"]["Parent Link"].split("_")[-1]
-
-    query = (
-        f"cf[{link_field_id}]={issue.key} and resolution=Unresolved ORDER BY rank ASC"
-    )
+    query = f'issue in linkedIssues("{issue.key}", "is parent of")'
     return _search(jira_client, query, verbose=False)
 
 
