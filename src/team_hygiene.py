@@ -53,7 +53,7 @@ def main(dry_run: bool, config_file: str) -> None:
         rules = [
             getattr(rules_team_module, rule) for rule in issue_config.get("rules", [])
         ]
-        issues = collector(jira_client, config["jira"]["project-id"], [issue_type])
+        issues = collector(jira_client, config["jira"]["project-id"], issue_type)
         process_type(jira_client, issues, rules, dry_run)
     print("\nDone.")
 

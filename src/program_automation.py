@@ -18,6 +18,7 @@ from collections import OrderedDict
 
 import click
 import jira
+
 import rules.program
 import rules.team
 from utils.jira import get_child_issues, get_issues, set_non_compliant_flag, update
@@ -68,7 +69,7 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     for issue_type in config.keys():
         print(f"\n\n## Processing {issue_type}")
         collector = collectors[issue_type]
-        issues = collector(jira_client, project_id, [issue_type])
+        issues = collector(jira_client, project_id, issue_type)
         process_type(jira_client, issues, config[issue_type], dry_run)
 
     print("\nDone.")
