@@ -54,7 +54,7 @@ build_container() {
     podman build \
         -f "$SCRIPT_DIR/../container/Dockerfile" \
         --tag "$IMAGE_TAG" \
-        "$PROJECT_DIR/tools"
+        "$PROJECT_DIR"
 }
 
 enter_container() {

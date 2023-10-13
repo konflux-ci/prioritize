@@ -1,0 +1,27 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+    "name": "Python",
+    "build": {
+        "dockerfile": "../tools/developer/container/Dockerfile",
+        "context": ".."
+    },
+    "containerEnv": {
+        "IDE": "vscode",
+    },
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,Z",
+	"workspaceFolder": "/workspace",
+	"runArgs": [
+		"--userns=keep-id"
+	],
+	"containerUser": "vscode",
+	"customizations": {
+		"vscode": {
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-python.python",
+				"timonwong.shellcheck"
+			]
+		}
+	}
+}
