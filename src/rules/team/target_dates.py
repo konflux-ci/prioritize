@@ -1,5 +1,6 @@
-import jira
 from time import strftime
+
+import jira
 
 today = strftime("%Y-%m-%d")
 

@@ -1,5 +1,4 @@
 import jira
-
 from utils.jira import refresh, update
 
 PRIORITY = [

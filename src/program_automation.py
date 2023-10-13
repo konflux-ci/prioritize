@@ -18,7 +18,6 @@ from collections import OrderedDict
 
 import click
 import jira
-
 import rules.program
 import rules.team
 from utils.jira import get_child_issues, get_issues, set_non_compliant_flag, update

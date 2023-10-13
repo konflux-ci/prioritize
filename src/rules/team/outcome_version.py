@@ -1,6 +1,6 @@
-import jira
 from re import compile
 
+import jira
 import utils.jira
 
 
