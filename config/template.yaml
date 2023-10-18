@@ -1,0 +1,21 @@
+jira:
+  # url: https://issues.redhat.com
+  project-id: #PROJECT_KEY
+  token: #JIRA_TOKEN
+team_automation:
+  issues:
+    Epic:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_due_date
+        - check_target_dates
+        - set_fix_version
+    Story:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_quarter_label
+        - check_due_date
