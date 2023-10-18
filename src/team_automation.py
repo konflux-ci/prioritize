@@ -48,7 +48,7 @@ def main(dry_run: bool, config_file: str) -> None:
     )
     jira_module = importlib.import_module("utils.jira")
     rules_team_module = importlib.import_module("rules.team")
-    for issue_type, issue_config in config["team_hygiene"]["issues"].items():
+    for issue_type, issue_config in config["team_automation"]["issues"].items():
         print(f"\n\n## Processing {issue_type}")
         collector = getattr(jira_module, issue_config.get("collector", "get_issues"))
         rules = [

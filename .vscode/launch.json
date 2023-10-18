@@ -5,11 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Team Hygiene",
+            "name": "Team Automation",
             "type": "python",
             "request": "launch",
-            "program": "src/team_hygiene.py",
-            "args": ["--config-file", "config/debug.yaml"],
+            "program": "src/team_automation.py",
+            "args": [
+                "--config-file",
+                "config/debug.yaml"
+            ],
             "console": "integratedTerminal",
             "justMyCode": true
         }

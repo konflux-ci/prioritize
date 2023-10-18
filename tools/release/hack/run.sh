@@ -69,7 +69,7 @@ enter_container() {
         --rm \
         --volume "$PROJECT_DIR":"/workspace":Z \
         "$IMAGE_TAG" \
-        "/workspace/src/team_hygiene.py" "${OPTIONS[@]}"
+        "/workspace/src/team_automation.py" "${OPTIONS[@]}"
 }
 
 main() {
