@@ -20,6 +20,7 @@ import importlib
 
 import click
 import jira
+from rules.team import check_rank
 from utils.configuration import Config
 from utils.jira import set_non_compliant_flag
 
@@ -79,7 +80,7 @@ def process_type(
 
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run)
-    rules.team.check_rank(issues, context, dry_run)
+    check_rank(issues, context, dry_run)
 
 
 def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool):
