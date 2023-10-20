@@ -101,7 +101,7 @@ def get_fields_ids(
 
 
 def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
-    query = f'issue in parentIssuesOf("{issue.key}")'
+    query = f'issue in parentIssuesOf("{issue.key}") and issue in linksHierarchyIssue("{issue.key}")'
     results = _search(jira_client, query, verbose=False)
     if not results:
         return None
