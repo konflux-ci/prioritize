@@ -69,7 +69,7 @@ def preprocess(
         issue.raw["Context"]["Field Ids"] = fields_ids
         issue.raw["Context"]["Related Issues"] = {}
         issue.raw["Context"]["Related Issues"]["Parent"] = get_parent(
-            jira_client, issue
+            jira_client, issue, fields_ids
         )
         issue.raw["Context"]["Related Issues"]["Blocks"] = get_blocks(
             jira_client, issue
@@ -82,22 +82,12 @@ def preprocess(
 def get_fields_ids(
     jira_client: jira.client.JIRA, issues: list[jira.resources.Issue]
 ) -> dict[str, str]:
-    ids = {}
     all_the_fields = jira_client.fields()
     # print(dir(issues[0].fields))
     # debug_fields = '\n'.join(sorted([i['name'] for i in all_the_fields]))
     # print(f"Fields:\n{debug_fields}")
+    return dict([(field["name"], field["id"]) for field in all_the_fields])
 
-    ids["Rank"] = [f["id"] for f in all_the_fields if f["name"] == "Rank"][0]
-    ids["Target Start Date"] = [
-        f["id"] for f in all_the_fields if f["name"] == "Target start"
-    ][0]
-    ids["Target End Date"] = [
-        f["id"] for f in all_the_fields if f["name"] == "Target end"
-    ][0]
-    ids["Due Date"] = [f["id"] for f in all_the_fields if f["name"] == "Due Date"][0]
-
-    return ids
 
 
 def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):

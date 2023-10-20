@@ -12,7 +12,7 @@ def check_target_end_date(
 ) -> None:
     children = issue.raw["Context"]["Related Issues"]["Children"]
 
-    target_end_id = issue.raw["Context"]["Field Ids"]["Target End Date"]
+    target_end_id = issue.raw["Context"]["Field Ids"]["Target end"]
     target_end_date, target_source = None, None
     for i in children:
         related_target_end_date = getattr(i.fields, target_end_id)
@@ -28,11 +28,11 @@ def check_target_end_date(
     ):
         if target_source:
             context["updates"].append(
-                f"  > Updating Target end Date to {target_end_date}, propagated from {target_source.key}."
+                f"  > Updating Target end date to {target_end_date}, propagated from {target_source.key}."
             )
         else:
             context["updates"].append(
-                f"  > Updating Target end Date to {target_end_date}."
+                f"  > Updating Target end date to {target_end_date}."
             )
         if not dry_run:
             update(issue, {"fields": {target_end_id: target_end_date}})

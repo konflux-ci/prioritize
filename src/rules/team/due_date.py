@@ -42,7 +42,7 @@ def check_due_date(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
     # The Target Date and Due Date should not be modified by the Assignee.
     # The Program Managers should have automation that will surface the impact of the
     # issue on their plans.
-    end_date_id = issue.raw["Context"]["Field Ids"]["Target End Date"]
+    end_date_id = issue.raw["Context"]["Field Ids"]["Target end"]
     end_date = getattr(issue.fields, end_date_id)
     if end_date and target_due_date and end_date > target_due_date:
         context["updates"].append(
