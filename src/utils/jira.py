@@ -89,13 +89,12 @@ def get_fields_ids(
     return dict([(field["name"], field["id"]) for field in all_the_fields])
 
 
-
-def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
-    query = f'issue in parentIssuesOf("{issue.key}")'
-    results = _search(jira_client, query, verbose=False)
-    if not results:
-        return None
-    return results[0]
+def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue, fields_ids):
+    for field_name in ["Epic Link", "Parent Link"]:
+        parent = getattr(issue.fields, fields_ids[field_name], None)
+        if parent:
+            return jira_client.issue(parent)
+    return None
 
 
 def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
