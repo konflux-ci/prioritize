@@ -61,7 +61,11 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
     config["Feature"] = [
         rules.program.check_target_end_date,
     ]
+    config["Outcome"] = [
+        rules.program.check_target_end_date,
+    ]
     collectors = {
+        "Outcome": get_issues,
         "Feature": get_issues,
         "Epic": get_child_issues,
     }
