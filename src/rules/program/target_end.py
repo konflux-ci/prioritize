@@ -47,13 +47,10 @@ def check_target_end_date(
             context["updates"].append(
                 f"  > Updating Target end Date to {target_end_date}. Only {int(proportion_estimated * 100)}% of children have estimates."
             )
-        elif target_source:
-            context["updates"].append(
-                f"  > Updating Target end Date to {target_end_date}, propagated from {target_source.key}."
-            )
         else:
             context["updates"].append(
-                f"  > Updating Target end Date to {target_end_date}."
+                f"  > Updating Target end Date to {target_end_date}, propagated from {getattr(target_source, 'key', None)}."
             )
+
         if not dry_run:
             update(issue, {"fields": {target_end_id: target_end_date}})
