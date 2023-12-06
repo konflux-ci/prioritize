@@ -36,14 +36,14 @@ def check_target_end_date(
     else:
         proportion_estimated = 0
     estimation_threshold = 0.75
-    if proportion_estimated <= estimation_threshold:
+    if proportion_estimated < estimation_threshold:
         target_end_date = None
 
     end_date = getattr(issue.fields, target_end_id)
     if (target_end_date is None and end_date) or (
         target_end_date and (not end_date or end_date != target_end_date)
     ):
-        if proportion_estimated <= estimation_threshold:
+        if proportion_estimated < estimation_threshold:
             context["updates"].append(
                 f"  > Updating Target end Date to {target_end_date}. Only {int(proportion_estimated * 100)}% of children have estimates."
             )
