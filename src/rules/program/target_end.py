@@ -10,16 +10,19 @@ today = strftime("%Y-%m-%d")
 def check_target_end_date(
     issue: jira.resources.Issue, context: dict, dry_run: bool
 ) -> None:
-
     target_end_id = issue.raw["Context"]["Field Ids"]["Target End Date"]
     target_end_date, target_source = None, None
     estimated_children = 0
 
     children = issue.raw["Context"]["Related Issues"]["Children"]
-    children = [child for child in children if (
-        child.fields.status.statusCategory.name != 'Done' or
-        getattr(child.fields, target_end_id)
-    )]
+    children = [
+        child
+        for child in children
+        if (
+            child.fields.status.statusCategory.name != "Done"
+            or getattr(child.fields, target_end_id)
+        )
+    ]
 
     for i in children:
         related_target_end_date = getattr(i.fields, target_end_id)
