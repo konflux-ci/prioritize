@@ -62,6 +62,7 @@ def main(dry_run: bool, project_id: str, token: str, url: str) -> None:
         rules.program.check_target_end_date,
     ]
     config["Outcome"] = [
+        rules.program.check_components,
         rules.program.check_target_end_date,
     ]
     collectors = {
