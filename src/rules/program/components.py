@@ -8,7 +8,7 @@ from utils.jira import refresh, update
 def check_components(issue: jira.resources.Issue, context: dict, dry_run: bool) -> None:
     children = issue.raw["Context"]["Related Issues"]["Children"]
 
-    child_components = list(set(sum([i.fields.components for i in children], [])))
+    child_components = set(sum([i.fields.components for i in children], []))
     child_components = [c.name for c in child_components]
     child_components.sort()
 
