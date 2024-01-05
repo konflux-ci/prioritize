@@ -1,6 +1,6 @@
 jira:
   # url: https://issues.redhat.com
-  project-id: #PROJECT_KEY
+  project-id: PLNSRVCE
 team_automation:
   issues:
     Epic:
