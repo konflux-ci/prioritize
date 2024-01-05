@@ -14,7 +14,7 @@ class Config:
     def validate(config: dict) -> None:
         if "jira" not in config.keys():
             raise RuntimeError("Missing 'jira' object in the configuration file")
-        for key in ["project-id", "token"]:
+        for key in ["project-id"]:
             if key not in config["jira"].keys():
                 raise RuntimeError(
                     f"Missing 'jira/{key}' object in the configuration file"

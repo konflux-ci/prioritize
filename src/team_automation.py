@@ -17,6 +17,7 @@ Issues that do not have a parent will be labelled as 'Non-compliant'.
 """
 
 import importlib
+import os
 
 import click
 import jira
@@ -39,13 +40,18 @@ from utils.jira import set_non_compliant_flag
     help="Configuration file",
     required=True,
 )
-def main(dry_run: bool, config_file: str) -> None:
+@click.option(
+    "-t",
+    "--token",
+    help="JIRA personal access token",
+    default=os.environ.get("JIRA_TOKEN"),
+    required=True,
+)
+def main(dry_run: bool, config_file: str, token: str) -> None:
     config = Config.load(config_file)
     Config.validate(config)
 
-    jira_client = jira.client.JIRA(
-        server=config["jira"]["url"], token_auth=config["jira"]["token"]
-    )
+    jira_client = jira.client.JIRA(server=config["jira"]["url"], token_auth=token)
     jira_module = importlib.import_module("utils.jira")
     rules_team_module = importlib.import_module("rules.team")
     for issue_type, issue_config in config["team_automation"]["issues"].items():

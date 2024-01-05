@@ -1,3 +1,2 @@
 virtualenv
 __pycache__
-config/*.yaml
