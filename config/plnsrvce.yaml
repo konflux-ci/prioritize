@@ -11,6 +11,8 @@ team_automation:
         - check_due_date
         - check_target_dates
         - set_fix_version
+      group_rules:
+        - check_rank
     Story:
       # collector: get_issues
       rules:
@@ -18,3 +20,5 @@ team_automation:
         - check_priority
         - check_quarter_label
         - check_due_date
+      group_rules:
+        - check_rank

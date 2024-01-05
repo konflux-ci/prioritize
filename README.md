@@ -1,7 +1,7 @@
 # JIRA Hygiene scripts
 There are currently 3 functions in this repository that try to ease Jira toil in different circumstances.
 - __prioritize-features__: This is intended to run against a parent of a project's features (like an outcome), and prioritizes all features of that parent above features associated with other parents.
-- __program_automation__: This is intended to run against a project to make it easier to push information dwon from a feature (like setting a feature's due date on all child issues), and eventually, pull information up to the feature level (like setting a feature's end date as the farthest end date of its epics).
+- __program_automation__: This is intended to run against a project to make it easier to push information down from a feature (like setting a feature's due date on all child issues), and eventually, pull information up to the feature level (like setting a feature's end date as the farthest end date of its epics).
 - __team_automation__: This is intended to run on a team's project, looking for issues that don't meet expected Jira hygiene rules, commenting on any discovered issue. The function expects a configuration file, for which you can find a template in [config](./config/template.yaml).
 
 More detailed information can be found in each function's code. Additional functionality could be added in the future.
@@ -35,7 +35,7 @@ A container is used to provide the base environment to develop and run the utili
 ## Runtime Environment
 A container is used to provide the base environment to run the utility.
 
-* Run `./tools/release/hack/run.sh -- --project-id MYPROJECT --token '\$(cat ~/.config/tokens/jira.txt)'`.
+* Run `./tools/release/hack/run.sh -- --config-file config/myproject.yaml --token '\$(cat ~/.config/tokens/jira.txt)'`.
 
 ## Usage notes 
 The expecation is that a team would set up some automation to run this periodically (like in GitLab), and could set up and provide a token for a JIRA bot.

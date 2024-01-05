@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
-""" Automatically prioritize/rank JIRA stories attached to a JIRA feature
+""" Apply a set of rules on a project
 
-Problem: If features are prioritized/ranked up or down - that action doesn't cascade to
-stories.  In order to plan sprints, you manually have to open tons of tabs, compare the
-priority/ranking of Features, find all the epics on those features and then find all the
-stories for your team on those epics - and move them up in your sprint planning backlog
-individually. What a pain!
+The project id and the set of rules to apply is managed via a configuration file.
+See the config directory for a template and examples.
 
-This script attempts to automate that for you.
-
-This script accepts two arguments: a project id and a token.  All of the stories of
-all of the epics of the project will be checked against their parent to calculate the
-right priority/rank.
-
-Issues that do not have a parent will be labelled as 'Non-compliant'.
+This script accepts two arguments: a path to a configuration file and a token.
 """
 
 import importlib
@@ -21,7 +12,6 @@ import os
 
 import click
 import jira
-from rules.team import check_rank
 from utils.configuration import Config
 from utils.jira import set_non_compliant_flag
 
@@ -53,15 +43,28 @@ def main(dry_run: bool, config_file: str, token: str) -> None:
 
     jira_client = jira.client.JIRA(server=config["jira"]["url"], token_auth=token)
     jira_module = importlib.import_module("utils.jira")
-    rules_team_module = importlib.import_module("rules.team")
-    for issue_type, issue_config in config["team_automation"]["issues"].items():
-        print(f"\n\n## Processing {issue_type}")
-        collector = getattr(jira_module, issue_config.get("collector", "get_issues"))
-        rules = [
-            getattr(rules_team_module, rule) for rule in issue_config.get("rules", [])
-        ]
-        issues = collector(jira_client, config["jira"]["project-id"], issue_type)
-        process_type(jira_client, issues, rules, dry_run)
+    rules_modules = {
+        "program": importlib.import_module("rules.program"),
+        "team": importlib.import_module("rules.team"),
+    }
+    for automation in ["program", "team"]:
+        for issue_type, issue_config in (
+            config.get(automation + "_automation", {}).get("issues", {}).items()
+        ):
+            print(f"\n\n## Processing {issue_type}")
+            collector = getattr(
+                jira_module, issue_config.get("collector", "get_issues")
+            )
+            issues = collector(jira_client, config["jira"]["project-id"], issue_type)
+            issue_rules = [
+                getattr(rules_modules[automation], rule)
+                for rule in issue_config.get("rules", [])
+            ]
+            group_rules = [
+                getattr(rules_modules[automation], rule)
+                for rule in issue_config.get("group_rules", [])
+            ]
+            process_type(jira_client, issues, issue_rules, group_rules, dry_run)
     print("\nDone.")
 
 
@@ -69,6 +72,7 @@ def process_type(
     jira_client: jira.client.JIRA,
     issues: list[jira.resources.Issue],
     checks: list[callable],
+    group_checks: list[callable],
     dry_run: bool,
 ) -> None:
     count = len(issues)
@@ -86,7 +90,8 @@ def process_type(
 
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run)
-    check_rank(issues, context, dry_run)
+    for check in group_checks:
+        check(issues, context, dry_run)
 
 
 def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool):
