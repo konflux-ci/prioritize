@@ -1,0 +1,20 @@
+jira:
+  # url: https://issues.redhat.com
+  project-id: RHTAP
+program_automation:
+  issues:
+    Feature:
+      # collector: get_issues
+      rules:
+        - check_target_end_date
+    Outcome:
+      # collector: get_issues
+      rules:
+        - check_components
+        - check_target_end_date
+team_automation:
+  issues:
+    Epic:
+      collector: get_child_issues
+      rules:
+        - check_due_date
