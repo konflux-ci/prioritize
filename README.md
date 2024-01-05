@@ -1,12 +1,9 @@
 # JIRA Hygiene scripts
-There are currently 3 functions in this repository that try to ease Jira toil in different circumstances.
-- __prioritize-features__: This is intended to run against a parent of a project's features (like an outcome), and prioritizes all features of that parent above features associated with other parents.
-- __program_automation__: This is intended to run against a project to make it easier to push information down from a feature (like setting a feature's due date on all child issues), and eventually, pull information up to the feature level (like setting a feature's end date as the farthest end date of its epics).
-- __team_automation__: This is intended to run on a team's project, looking for issues that don't meet expected Jira hygiene rules, commenting on any discovered issue. The function expects a configuration file, for which you can find a template in [config](./config/template.yaml).
 
-More detailed information can be found in each function's code. Additional functionality could be added in the future.
+- __automation__: This script is intended to run on a JIRA's project, looking for issues that don't meet expected Jira hygiene rules, fixing and/or commenting on any discovered issue. The function expects a configuration file, for which you can find a template in [config](./config/template.yaml).
 
-Examples of things __team_automation__ looks at:
+
+Examples of rules that can be applied by __automation__:
 * Hierarchy:
   * Epic must have a parent issue. The issue can be of any type.
   * Stories must have a parent Epic.

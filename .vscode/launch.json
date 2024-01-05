@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Team Automation",
+            "name": "Automation",
             "type": "python",
             "request": "launch",
-            "program": "src/team_automation.py",
+            "program": "src/automation.py",
             "args": [
                 "--config-file",
                 "config/debug.yaml"
