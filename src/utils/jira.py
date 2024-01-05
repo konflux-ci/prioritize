@@ -118,7 +118,7 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
 
 
 def get_children(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
-    query = f'"Parent Link" = {issue.key} or "Epic Link" = {issue.key}'
+    query = f'issue in childIssuesOf("{issue.key}") and issue in linksHierarchyIssue("{issue.key}") ORDER BY rank ASC'
     return _search(jira_client, query, verbose=False)
 
 
