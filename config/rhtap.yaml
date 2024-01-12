@@ -7,11 +7,6 @@ program_automation:
       # collector: get_issues
       rules:
         - check_target_end_date
-    Outcome:
-      # collector: get_issues
-      rules:
-        - check_components
-        - check_target_end_date
 team_automation:
   issues:
     Epic:
