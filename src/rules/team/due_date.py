@@ -30,11 +30,13 @@ def check_due_date(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
         target_due_date and (not due_date or due_date != target_due_date)
     ):
         if target_source:
-            context["updates"].append(
-                f"  > Updating Due Date to {target_due_date}, inherited from {target_source.key}."
-            )
+            message = f"  * Updating Due Date to {target_due_date}, inherited from parent {target_source.key}."
         else:
-            context["updates"].append(f"  > Updating Due Date to {target_due_date}.")
+            message = f"  * Updating Due Date to {target_due_date}."
+
+        context["updates"].append(message)
+        context["comments"].append(message)
+
         if not dry_run:
             update(issue, {"fields": {due_date_id: target_due_date}})
 
