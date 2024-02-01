@@ -47,13 +47,12 @@ def check_target_end_date(
         target_end_date and (not end_date or end_date != target_end_date)
     ):
         if proportion_estimated < estimation_threshold:
-            context["updates"].append(
-                f"  > Updating Target end Date to {target_end_date}. Only {int(proportion_estimated * 100)}% of children have estimates."
-            )
+            message = f"  * Updating Target end date estimate to {target_end_date}. Only {int(proportion_estimated * 100)}% of children have estimates."
         else:
-            context["updates"].append(
-                f"  > Updating Target end Date to {target_end_date}, propagated from {getattr(target_source, 'key', None)}."
-            )
+            message = f"  * Updating Target end date estimate to {target_end_date}, propagated from child {getattr(target_source, 'key', None)}."
+
+        context["updates"].append(message)
+        context["comments"].append(message)
 
         if not dry_run:
             update(issue, {"fields": {target_end_id: target_end_date}})
