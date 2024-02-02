@@ -166,13 +166,17 @@ def set_non_compliant_flag(
     if context["comments"]:
         print("\n".join(context["comments"]))
     if not dry_run:
-        if context["comments"]:
-            if has_non_compliant_flag:
+        if has_non_compliant_flag:
+            if context["comments"]:
+                # If the issue is already marked, don't spam with more comments
                 context["comments"].clear()
-            else:
+
+            if not context["non-compliant"]:
+                # If the issue looks good now, then unmark it.
+                issue.fields.labels.remove(non_compliant_flag)
+                update(issue, {"fields": {"labels": issue.fields.labels}})
+                context["comments"].append("  * Issue is now compliant")
+        else:
+            if context["non-compliant"]:
                 issue.fields.labels.append(non_compliant_flag)
                 update(issue, {"fields": {"labels": issue.fields.labels}})
-        elif not context["comments"] and has_non_compliant_flag:
-            issue.fields.labels.remove(non_compliant_flag)
-            update(issue, {"fields": {"labels": issue.fields.labels}})
-            context["comments"].append("  * Issue is now compliant")
