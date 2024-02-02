@@ -12,6 +12,7 @@ import os
 
 import click
 import jira
+
 from utils.configuration import Config
 from utils.jira import set_non_compliant_flag
 
@@ -84,6 +85,7 @@ def process_type(
             "comments": [],
             "jira_client": jira_client,
             "updates": [],
+            "non-compliant": False,
         }
         for check in checks:
             check(issue, context, dry_run)
