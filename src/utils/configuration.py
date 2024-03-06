@@ -1,6 +1,7 @@
 import yaml
 
 DEFAULT_JIRA_URL = "https://issues.redhat.com"
+DEFAULT_SUBQUERY = ""
 
 
 class Config:
@@ -20,3 +21,4 @@ class Config:
                     f"Missing 'jira/{key}' object in the configuration file"
                 )
         config["jira"]["url"] = config["jira"].get("url", DEFAULT_JIRA_URL)
+        config["jira"]["subquery"] = config["jira"].get("url", DEFAULT_SUBQUERY)

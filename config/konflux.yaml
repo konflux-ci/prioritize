@@ -1,6 +1,7 @@
 jira:
   # url: https://issues.redhat.com
   project-id: KONFLUX
+  subquery: filter!=12422371
 program_automation:
   issues:
     Feature:
