@@ -1,6 +1,7 @@
+---
 jira:
   # url: https://issues.redhat.com
-  project-id: #PROJECT_KEY
+  project-id:  # PROJECT_KEY
 team_automation:
   issues:
     Epic:
