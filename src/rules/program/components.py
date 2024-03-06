@@ -1,8 +1,6 @@
-from time import strftime
-
 import jira
 
-from utils.jira import refresh, update
+from utils.jira import update
 
 
 def check_components(issue: jira.resources.Issue, context: dict, dry_run: bool) -> None:
