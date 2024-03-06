@@ -2,7 +2,7 @@ from time import strftime
 
 import jira
 
-from utils.jira import refresh, update
+from utils.jira import update
 
 today = strftime("%Y-%m-%d")
 

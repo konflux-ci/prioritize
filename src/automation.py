@@ -79,7 +79,7 @@ def process_type(
     count = len(issues)
     for index, issue in enumerate(issues):
         print(
-            f"\n### [{index+1}/{count}]\t{issue.key}: {issue.fields.summary}\t[{issue.fields.assignee}/{issue.fields.status}]"
+            f"\n### [{index + 1}/{count}]\t{issue.key}: {issue.fields.summary}\t[{issue.fields.assignee}/{issue.fields.status}]"
         )
         context = {
             "comments": [],

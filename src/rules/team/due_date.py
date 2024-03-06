@@ -2,7 +2,7 @@ from time import strftime
 
 import jira
 
-from utils.jira import refresh, update
+from utils.jira import update
 
 today = strftime("%Y-%m-%d")
 
@@ -48,5 +48,5 @@ def check_due_date(issue: jira.resources.Issue, context: dict, dry_run: bool) ->
     end_date = getattr(issue.fields, end_date_id)
     if end_date and target_due_date and end_date > target_due_date:
         context["updates"].append(
-            f"  ? Target Date exceeds Due Date. You may want to notify the Program Managers."
+            "  ? Target Date exceeds Due Date. You may want to notify the Program Managers."
         )

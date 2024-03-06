@@ -78,7 +78,7 @@ def _set_rank(
             else:
                 jira_client.rank(issue=issue.key, prev_issue=previous_issue.key)
         previous_issue = issue
-        print(f"\r{100*(index+1)//total}%", end="", flush=True)
+        print(f"\r{100 * (index + 1) // total}%", end="", flush=True)
 
 
 class Block:
