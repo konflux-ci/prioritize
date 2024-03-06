@@ -3,7 +3,9 @@ import sys
 import jira
 
 
-def get_issues(jira_client: jira.client.JIRA, project_id: str, subquery: str, issue_type: str) -> list:
+def get_issues(
+    jira_client: jira.client.JIRA, project_id: str, subquery: str, issue_type: str
+) -> list:
     result = query_issues(jira_client, project_id, subquery, issue_type)
     preprocess(jira_client, result)
     return result
