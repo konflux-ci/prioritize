@@ -3,16 +3,18 @@ import sys
 import jira
 
 
-def get_issues(jira_client: jira.client.JIRA, project_id: str, issue_type: str) -> list:
+def get_issues(jira_client: jira.client.JIRA, project_id: str, subquery: str, issue_type: str) -> list:
     result = query_issues(jira_client, project_id, issue_type)
     preprocess(jira_client, result)
     return result
 
 
 def query_issues(
-    jira_client: jira.client.JIRA, project_id: str, issue_type: str
+    jira_client: jira.client.JIRA, project_id: str, subquery: str, issue_type: str
 ) -> dict:
     query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
+    if subquery:
+        query = f"{subquery} AND {query}"
     results = _search(jira_client, query, verbose=True)
     if not results:
         print(f"No {issue_type} found via query: {query}")
@@ -21,7 +23,7 @@ def query_issues(
 
 
 def get_child_issues(
-    jira_client: jira.client.JIRA, project_id: str, issue_type: str
+    jira_client: jira.client.JIRA, project_id: str, subquery: str, issue_type: str
 ) -> list:
     result = query_child_issues(jira_client, project_id, issue_type)
     preprocess(jira_client, result)
@@ -29,9 +31,13 @@ def get_child_issues(
 
 
 def query_child_issues(
-    jira_client: jira.client.JIRA, project_id: str, issue_type: str
+    jira_client: jira.client.JIRA, project_id: str, subquery: str, issue_type: str
 ) -> dict:
-    query = f"issueFunction in portfolioChildrenOf('project={project_id}') AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
+    if subquery:
+        query = f"issueFunction in portfolioChildrenOf('project={project_id} AND {subquery}')"
+    else:
+        query = f"issueFunction in portfolioChildrenOf('project={project_id}')"
+    query = f"{query} AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
     results = _search(jira_client, query, verbose=True)
     if not results:
         print(f"No {issue_type} found via query: {query}")
