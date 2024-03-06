@@ -56,7 +56,12 @@ def main(dry_run: bool, config_file: str, token: str) -> None:
             collector = getattr(
                 jira_module, issue_config.get("collector", "get_issues")
             )
-            issues = collector(jira_client, config["jira"]["project-id"], config["jira"]["subquery"], issue_type)
+            issues = collector(
+                jira_client,
+                config["jira"]["project-id"],
+                config["jira"]["subquery"],
+                issue_type,
+            )
             issue_rules = [
                 getattr(rules_modules[automation], rule)
                 for rule in issue_config.get("rules", [])
