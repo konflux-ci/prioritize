@@ -21,4 +21,4 @@ class Config:
                     f"Missing 'jira/{key}' object in the configuration file"
                 )
         config["jira"]["url"] = config["jira"].get("url", DEFAULT_JIRA_URL)
-        config["jira"]["subquery"] = config["jira"].get("url", DEFAULT_SUBQUERY)
+        config["jira"]["subquery"] = config["jira"].get("subquery", DEFAULT_SUBQUERY)
