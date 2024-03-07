@@ -5,6 +5,7 @@ from .priority import check_priority
 from .quarter_label import check_quarter_label
 from .rank import check_rank
 from .target_dates import check_target_dates
+from .timesensitive_rank import check_timesensitive_rank
 
 __all__ = [
     check_due_date,
@@ -14,4 +15,5 @@ __all__ = [
     check_quarter_label,
     check_rank,
     check_target_dates,
+    check_timesensitive_rank,
 ]
