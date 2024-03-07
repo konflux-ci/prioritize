@@ -19,7 +19,7 @@ team_automation:
     Feature:
       # collector: get_issues
       group_rules:
-        - check_rank
+        - check_timesensitive_rank
     Epic:
       collector: get_child_issues
       rules:
