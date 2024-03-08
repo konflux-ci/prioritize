@@ -19,7 +19,7 @@ def check_timesensitive_rank(
 
     # Get blocks and current ranking
     blocks = Blocks(issues)
-    old_ranking = blocks.get_issues()
+    old_ranking = issues
 
     # Sort blocks and generate new ranking
     blocks.sort()
