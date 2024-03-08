@@ -109,7 +109,7 @@ class TimeSensitiveBlock(Block):
     def _claims(issue) -> bool:
         duedate_field_id = issue.raw["Context"]["Field Ids"]["Due Date"]
         critical_deadline = (
-            datetime.datetime.today() + datetime.timedelta(days=30 * 6)
+            datetime.datetime.today() + datetime.timedelta(days=30 * 3)
         ).strftime("%Y-%m-%d")
         duedate = getattr(issue.fields, duedate_field_id)
         return duedate and duedate < critical_deadline
