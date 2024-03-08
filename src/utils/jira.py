@@ -1,6 +1,13 @@
 import sys
 
+import dogpile.cache
 import jira
+
+cache = dogpile.cache.make_region().configure(
+    "dogpile.cache.dbm",
+    expiration_time=7200,
+    arguments={"filename": f"jira.cache"},
+)
 
 
 def get_issues(
@@ -48,23 +55,27 @@ def query_child_issues(
 
 
 def _search(jira_client: jira.client.JIRA, query: str, verbose: bool) -> list:
-    if verbose:
-        print("  ?", query)
+    @cache.cache_on_arguments()
+    def __search(query: str, verbose: bool) -> list:
+        if verbose:
+            print("  ?", query)
 
-    # JIRA can be flaky, so retry a few times before failing
-    error = None
-    for _ in range(0, 5):
-        try:
-            results = jira_client.search_issues(query, maxResults=0)
-            break
-        except jira.exceptions.JIRAError as ex:
-            error = ex.text
-    else:
-        raise RuntimeError(f"'{query}' returned: {error}")
+        # JIRA can be flaky, so retry a few times before failing
+        error = None
+        for _ in range(0, 5):
+            try:
+                results = jira_client.search_issues(query, maxResults=0)
+                break
+            except jira.exceptions.JIRAError as ex:
+                error = ex.text
+        else:
+            raise RuntimeError(f"'{query}' returned: {error}")
 
-    if verbose:
-        print("  =", f"{len(results)} results:", [r.key for r in results])
-    return results
+        if verbose:
+            print("  =", f"{len(results)} results:", [r.key for r in results])
+        return results
+
+    return __search(query, verbose)
 
 
 def preprocess(
