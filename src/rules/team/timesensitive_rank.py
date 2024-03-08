@@ -126,18 +126,14 @@ class Blocks(list):
         block = None
         addBlock = True
         parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
-        if parent_issue is None:
-            block = Block(None)
+        for block in self.blocks:
+            if block.claims(issue):
+                addBlock = False
+                break
+        if addBlock:
+            parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
+            block = Block(parent_issue)
             self.blocks.append(block)
-        else:
-            for block in self.blocks:
-                if block.claims(issue):
-                    addBlock = False
-                    break
-            if addBlock:
-                parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
-                block = Block(parent_issue)
-                self.blocks.append(block)
         block.issues.append(issue)
 
     def get_issues(self) -> list[jira.resources.Issue]:
@@ -157,6 +153,7 @@ class Blocks(list):
     def sort(self):
         self._sort_by_project_rank()
         self._sort_by_status()
+        self._deprioritize_orphans()
         self._prioritize_timesensitive_block()
 
     def _sort_by_project_rank(self):
@@ -212,6 +209,19 @@ class Blocks(list):
                 new.append(block)
 
         self.blocks = inprogress + new
+
+    def _deprioritize_orphans(self):
+        """Issues with no parent are deprioritized."""
+        orphans = []
+        other = []
+
+        for block in self.blocks:
+            if block.parent_issue is None:
+                orphans.append(block)
+            else:
+                other.append(block)
+
+        self.blocks = other + orphans
 
     def _prioritize_timesensitive_block(self):
         """Issues that are time sensitive rise to the top of the list."""
