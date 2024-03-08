@@ -6,7 +6,7 @@ import jira
 cache = dogpile.cache.make_region().configure(
     "dogpile.cache.dbm",
     expiration_time=7200,
-    arguments={"filename": f"jira.cache"},
+    arguments={"filename": "jira.cache"},
 )
 
 
