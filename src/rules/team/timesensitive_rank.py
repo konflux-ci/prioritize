@@ -140,12 +140,6 @@ class Blocks(list):
         """Return a flat list of issues, in the order of appearance in the blocks"""
         issues = []
         for block in self.blocks:
-            if (
-                block.parent_issue is not None
-                and block.parent_issue.fields.project.key
-                == block.issues[0].fields.project.key
-            ):
-                issues.append(block.parent_issue)
             for issue in block.yield_issues():
                 issues.append(issue)
         return issues

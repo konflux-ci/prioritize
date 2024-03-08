@@ -20,14 +20,12 @@ def test_rank_single_move(issues):
     blocks.sort()
     new_ranking = blocks.get_issues()
     assert new_ranking != old_ranking
-    assert new_ranking[0].key == "child0"  # Highly ranked orphan child is maintained
-    assert new_ranking[1].key == "parent3"
-    assert new_ranking[2].key == "child3"
-    assert new_ranking[3].key == "parent1"
-    assert new_ranking[4].key == "child1"
-    assert new_ranking[5].key == "parent2"
-    assert new_ranking[6].key == "child2"
-    assert new_ranking[7].key == "child4"
+    assert new_ranking[0].key == "child3"
+    assert new_ranking[1].key == "child1"
+    assert new_ranking[2].key == "child2"
+    # Highly ranked orphan child is not maintained
+    assert new_ranking[3].key == "child0"
+    assert new_ranking[4].key == "child4"
 
 
 def test_rank_with_dates(issues_with_due_dates):
@@ -43,8 +41,6 @@ def test_rank_with_dates(issues_with_due_dates):
     assert new_ranking != old_ranking
     assert new_ranking[0].key == "child5"
     assert new_ranking[1].key == "child4"
-    assert new_ranking[2].key == "parent2"
-    assert new_ranking[3].key == "child2"
-    assert new_ranking[4].key == "child3"
-    assert new_ranking[5].key == "parent1"
-    assert new_ranking[6].key == "child1"
+    assert new_ranking[2].key == "child2"
+    assert new_ranking[3].key == "child3"
+    assert new_ranking[4].key == "child1"
