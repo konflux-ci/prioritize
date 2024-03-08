@@ -128,12 +128,18 @@ def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
 
 
 def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
-    blocks = [
-        jira_client.issue(il.raw["outwardIssue"]["key"])
+    @cache.cache_on_arguments()
+    def _get_blocks(keys):
+        blocks = [
+            jira_client.issue(key)
+            for key in keys
+        ]
+        return blocks
+    return _get_blocks([
+        il.raw["outwardIssue"]["key"]
         for il in issue.fields.issuelinks
         if il.type.name == "Blocks" and "outwardIssue" in il.raw.keys()
-    ]
-    return blocks
+    ])
 
 
 def get_children(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
