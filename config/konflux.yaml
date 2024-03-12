@@ -23,4 +23,18 @@ team_automation:
     Epic:
       collector: get_child_issues
       rules:
-        - check_due_date
+        - rule: check_due_date
+          kwargs:
+            ignore:
+              - SVPI-730
+              - STONEINTG-767
+              - STONEBLD-2116
+              - RHTAPWATCH-743
+              - RHTAPSRE-366
+              - RHTAPREL-809
+              - PLNSRVCE-1605
+              - HAC-5626
+              - GITOPSRVCE-800
+              - EC-367
+              - DEVHAS-606
+              - ASC-454

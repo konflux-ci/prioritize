@@ -7,7 +7,16 @@ from utils.jira import update
 today = strftime("%Y-%m-%d")
 
 
-def check_due_date(issue: jira.resources.Issue, context: dict, dry_run: bool) -> None:
+def check_due_date(
+    issue: jira.resources.Issue, context: dict, dry_run: bool, ignore: list = None
+) -> None:
+    ignore = ignore or []
+    if issue.key in ignore:
+        context["updates"].append(
+            f"! Ignoring {issue.key} for due date rule, per config."
+        )
+        return
+
     related_issues = list(issue.raw["Context"]["Related Issues"]["Blocks"])
     parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
     if parent_issue is not None:

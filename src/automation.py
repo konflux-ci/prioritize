@@ -7,8 +7,10 @@ See the config directory for a template and examples.
 This script accepts two arguments: a path to a configuration file and a token.
 """
 
+import functools
 import importlib
 import os
+import typing
 
 import click
 import jira
@@ -63,11 +65,11 @@ def main(dry_run: bool, config_file: str, token: str) -> None:
                 issue_type,
             )
             issue_rules = [
-                getattr(rules_modules[automation], rule)
+                get_rule(rule, rules_modules[automation])
                 for rule in issue_config.get("rules", [])
             ]
             group_rules = [
-                getattr(rules_modules[automation], rule)
+                get_rule(rule, rules_modules[automation])
                 for rule in issue_config.get("group_rules", [])
             ]
             process_type(jira_client, issues, issue_rules, group_rules, dry_run)
@@ -109,6 +111,15 @@ def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool):
             )
     if context["updates"]:
         print("\n".join(context["updates"]))
+
+
+def get_rule(rule: typing.Any, module):
+    kwargs = {}
+    if isinstance(rule, dict):
+        kwargs = rule.get("kwargs", {})
+        rule = rule["rule"]
+    func = getattr(module, rule)
+    return functools.partial(func, **kwargs)
 
 
 if __name__ == "__main__":
