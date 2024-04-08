@@ -72,7 +72,14 @@ def main(dry_run: bool, config_file: str, token: str) -> None:
                 get_rule(rule, rules_modules[automation])
                 for rule in issue_config.get("group_rules", [])
             ]
-            process_type(jira_client, issues, issue_rules, group_rules, dry_run)
+            process_type(
+                jira_client,
+                issues,
+                issue_rules,
+                group_rules,
+                dry_run,
+                config["comments"]["footer"],
+            )
     print("\nDone.")
 
 
@@ -82,6 +89,7 @@ def process_type(
     checks: list[callable],
     group_checks: list[callable],
     dry_run: bool,
+    footer: str,
 ) -> None:
     count = len(issues)
     for index, issue in enumerate(issues):
@@ -98,17 +106,18 @@ def process_type(
             check(issue, context, dry_run)
 
         set_non_compliant_flag(issue, context, dry_run)
-        add_comment(issue, context, dry_run)
+        add_comment(issue, context, dry_run, footer)
     for check in group_checks:
         check(issues, context, dry_run)
 
 
-def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool):
+def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool, footer: str):
     if context["comments"]:
         if not dry_run:
-            context["jira_client"].add_comment(
-                issue.key, "\n".join(context["comments"])
-            )
+            comment = "\n".join(context["comments"])
+            if footer:
+                comment = f"{comment}\n\n{footer}"
+            context["jira_client"].add_comment(issue.key, comment)
     if context["updates"]:
         print("\n".join(context["updates"]))
 

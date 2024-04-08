@@ -22,3 +22,5 @@ class Config:
                 )
         config["jira"]["url"] = config["jira"].get("url", DEFAULT_JIRA_URL)
         config["jira"]["subquery"] = config["jira"].get("subquery", DEFAULT_SUBQUERY)
+        config["comments"] = config.get("comments", {})
+        config["comments"]["footer"] = config["comments"].get("footer", "")

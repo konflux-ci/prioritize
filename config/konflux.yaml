@@ -3,6 +3,12 @@ jira:
   # url: https://issues.redhat.com
   project-id: KONFLUX
   subquery: filter!=12422371
+comments:
+  footer: >
+    {color:#505f79}See also the
+    [source code|https://github.com/konflux-ci/prioritize] and
+    [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
+    for this bot.{color}
 program_automation:
   issues:
     Feature:
