@@ -1,0 +1,24 @@
+---
+jira:
+  # url: https://issues.redhat.com
+  project-id: DEVHAS
+team_automation:
+  issues:
+    Epic:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_due_date
+        - check_target_dates
+      group_rules:
+        - check_rank
+    Story:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_quarter_label
+        - check_due_date
+      group_rules:
+        - check_rank
