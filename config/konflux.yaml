@@ -31,17 +31,11 @@ team_automation:
       rules:
         - rule: check_due_date
           kwargs:
-            ignore:
-              - SVPI-730
-              - STONEINTG-767
-              - STONEBLD-2116
-              - RHTAPWATCH-743
-              - RHTAPSRE-366
-              - RHTAPREL-809
-              - PLNSRVCE-1605
-              - HAC-5626
-              - GITOPSRVCE-800
-              - EC-367
-              - DEVHAS-606
-              - ASC-454
-              - PSSECAUT-362
+            # This is a CEL expression
+            ignore: >
+              .key in [
+                "SVPI-730", "STONEINTG-767", "STONEBLD-2116", "RHTAPWATCH-743",
+                "RHTAPSRE-366", "RHTAPREL-809", "PLNSRVCE-1605", "HAC-5626",
+                "GITOPSRVCE-800", "EC-367", "DEVHAS-606", "ASC-454",
+                "PSSECAUT-362"
+              ]

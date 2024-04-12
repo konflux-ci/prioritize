@@ -1,21 +1,25 @@
 from time import strftime
 
+import celpy
 import jira
 
+from utils.cel import issue_as_cel
 from utils.jira import update
 
 today = strftime("%Y-%m-%d")
 
 
 def check_due_date(
-    issue: jira.resources.Issue, context: dict, dry_run: bool, ignore: list = None
+    issue: jira.resources.Issue, context: dict, dry_run: bool, ignore: str = ""
 ) -> None:
-    ignore = ignore or []
-    if issue.key in ignore:
-        context["updates"].append(
-            f"! Ignoring {issue.key} for due date rule, per config."
-        )
-        return
+    if ignore:
+        env = celpy.Environment()
+        program = env.program(env.compile(ignore))
+        if program.evaluate(issue_as_cel(issue)):
+            context["updates"].append(
+                f"! Ignoring {issue.key} for due date rule, per cel expression {ignore}."
+            )
+            return
 
     related_issues = list(issue.raw["Context"]["Related Issues"]["Blocks"])
     parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
