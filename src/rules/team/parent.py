@@ -12,7 +12,7 @@ def check_parent_link(
         program = env.program(env.compile(ignore))
         if program.evaluate(issue_as_cel(issue)):
             context["updates"].append(
-                f"! Ignoring {issue.key} for parent link rule, per cel expression {ignore}."
+                f"! Ignoring {issue.key} for parent link rule, per cel expression: {ignore}."
             )
             return
     if issue.raw["Context"]["Related Issues"]["Parent"] is None:

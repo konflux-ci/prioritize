@@ -17,7 +17,7 @@ def check_due_date(
         program = env.program(env.compile(ignore))
         if program.evaluate(issue_as_cel(issue)):
             context["updates"].append(
-                f"! Ignoring {issue.key} for due date rule, per cel expression {ignore}."
+                f"! Ignoring {issue.key} for due date rule, per cel expression: {ignore}."
             )
             return
 
