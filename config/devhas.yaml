@@ -12,7 +12,7 @@ team_automation:
         # as an option for priority, but DEVHAS project itself does not.
         # This rule attempts to propagate the "Normal" priority down to
         # DEVHAS, and fails.
-        #- check_priority
+        # - check_priority
         - check_due_date
         - check_target_dates
       group_rules:
@@ -21,7 +21,7 @@ team_automation:
       # collector: get_issues
       rules:
         - check_parent_link
-        #- check_priority
+        # - check_priority
         - check_quarter_label
         - check_due_date
       group_rules:
