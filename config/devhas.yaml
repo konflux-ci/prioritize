@@ -8,7 +8,11 @@ team_automation:
       # collector: get_issues
       rules:
         - check_parent_link
-        - check_priority
+        # This rule cannot run, because DEVHAS epic parents have "normal"
+        # as an option for priority, but DEVHAS project itself does not.
+        # This rule attempts to propagate the "Normal" priority down to
+        # DEVHAS, and fails.
+        #- check_priority
         - check_due_date
         - check_target_dates
       group_rules:
