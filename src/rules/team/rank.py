@@ -41,6 +41,7 @@ def check_rank(
     issues: list[jira.resources.Issue],
     context: dict,
     dry_run: bool,
+    favor_status: bool = False,
 ) -> None:
     """Rerank all issues"""
     jira_client = context["jira_client"]
@@ -50,7 +51,7 @@ def check_rank(
     old_ranking = blocks.get_issues()
 
     # Sort blocks and generate new ranking
-    blocks.sort()
+    blocks.sort(favor_status=favor_status)
     new_ranking = blocks.get_issues()
 
     # Apply new ranking
@@ -141,9 +142,10 @@ class Blocks(list):
                 issues.append(issue)
         return issues
 
-    def sort(self):
+    def sort(self, favor_status=False):
         self._sort_by_project_rank()
-        self._sort_by_status()
+        if favor_status:
+            self._sort_by_status()
 
     def _sort_by_project_rank(self):
         """Rerank blocks based on the block's project rank.

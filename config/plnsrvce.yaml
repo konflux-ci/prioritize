@@ -13,7 +13,10 @@ team_automation:
         - check_target_dates
         - set_fix_version
       group_rules:
-        - check_rank
+        - rule: check_rank
+          kwargs:
+            # Favor in-progress parents, despite rank
+            favor_status: true
     Story:
       # collector: get_issues
       rules:
@@ -22,4 +25,7 @@ team_automation:
         - check_quarter_label
         - check_due_date
       group_rules:
-        - check_rank
+        - rule: check_rank
+          kwargs:
+            # Favor in-progress parents, despite rank
+            favor_status: true
