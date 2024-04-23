@@ -21,7 +21,7 @@ team_automation:
       # collector: get_issues
       rules:
         - check_parent_link
-        - check_priority
+        #- check_priority
         - check_quarter_label
         - check_due_date
       group_rules:
