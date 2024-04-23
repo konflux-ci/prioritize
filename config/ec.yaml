@@ -1,0 +1,18 @@
+---
+jira:
+  # url: https://issues.redhat.com
+  project-id: EC
+team_automation:
+  issues:
+    Epic:
+      # collector: get_issues
+      rules: []
+      group_rules:
+        - check_rank
+    Story:
+      # collector: get_issues
+      # Todo: Consider using the filter used by the scrum board,
+      # https://issues.redhat.com/issues/?filter=12422356
+      rules: []
+      group_rules:
+        - check_rank
