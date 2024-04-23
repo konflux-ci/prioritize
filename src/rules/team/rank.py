@@ -75,9 +75,12 @@ def _set_rank(
             rerank = True
         if rerank and previous_issue is not None:
             if dry_run:
-                print(f"  > {issue.key}")
+                print(f"  > {issue.key} would be moved just below {previous_issue.key}")
             else:
                 jira_client.rank(issue=issue.key, prev_issue=previous_issue.key)
+        elif dry_run:
+            print(f"  > {issue.key} is already in the right place")
+
         previous_issue = issue
         print(f"\r{100 * (index + 1) // total}%", end="", flush=True)
 
