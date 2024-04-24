@@ -1,0 +1,31 @@
+---
+jira:
+  # url: https://issues.redhat.com
+  project-id: SVPI
+team_automation:
+  issues:
+    Epic:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_due_date
+        - check_target_dates
+        - set_fix_version
+      group_rules:
+        - rule: check_rank
+          kwargs:
+            # Favor in-progress parents, despite rank
+            favor_status: true
+    Story:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_quarter_label
+        - check_due_date
+      group_rules:
+        - rule: check_rank
+          kwargs:
+            # Favor in-progress parents, despite rank
+            favor_status: true
