@@ -36,7 +36,7 @@ team_automation:
             ignore: >
               .key in [
                 "SVPI-730", "STONEINTG-767", "STONEBLD-2116", "RHTAPWATCH-743",
-                "KFLUXINFRA-34", "RHTAPREL-809", "PLNSRVCE-1605", "HAC-5626",
+                "KFLUXINFRA-34", "RELEASE-852", "PLNSRVCE-1605", "HAC-5626",
                 "GITOPSRVCE-800", "EC-367", "DEVHAS-606", "ASC-454",
                 "PSSECAUT-362"
               ]
