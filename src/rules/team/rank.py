@@ -152,6 +152,8 @@ class Blocks(list):
         Blocks are switch around, but a block can only be switched
         with a block of the same parent project.
         """
+        if not self.blocks:
+            return
         rank_field_id = self.blocks[0].issues[0].raw["Context"]["Field Ids"]["Rank"]
 
         # For each project, generate a ranked list of issues
