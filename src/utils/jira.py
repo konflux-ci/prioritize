@@ -1,5 +1,3 @@
-import sys
-
 import dogpile.cache
 import jira
 
@@ -27,7 +25,6 @@ def query_issues(
     results = _search(jira_client, query, verbose=True)
     if not results:
         print(f"No {issue_type} found via query: {query}")
-        sys.exit(1)
     return results
 
 
@@ -50,7 +47,6 @@ def query_child_issues(
     results = _search(jira_client, query, verbose=True)
     if not results:
         print(f"No {issue_type} found via query: {query}")
-        sys.exit(1)
     return results
 
 
