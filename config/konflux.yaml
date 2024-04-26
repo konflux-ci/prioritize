@@ -5,8 +5,9 @@ jira:
   subquery: filter!=12422371
 comments:
   footer: >
-    {color:#505f79}See also the
-    [source code|https://github.com/konflux-ci/prioritize] and
+    {color:#505f79}See also
+    [konflux.yaml|https://github.com/konflux-ci/prioritize/blob/main/config/konflux.yaml],
+    the [source code|https://github.com/konflux-ci/prioritize], and the
     [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
     for this bot.{color}
 program_automation:

@@ -2,6 +2,13 @@
 jira:
   # url: https://issues.redhat.com
   project-id: STONEINTG
+comments:
+  footer: >
+    {color:#505f79}See also
+    [stoneintg.yaml|https://github.com/konflux-ci/prioritize/blob/main/config/stoneintg.yaml],
+    the [source code|https://github.com/konflux-ci/prioritize], and the
+    [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
+    for this bot.{color}
 team_automation:
   issues:
     Epic:
