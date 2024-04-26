@@ -107,6 +107,13 @@ def process_type(
 
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run, footer)
+
+    context = {
+        "comments": [],
+        "jira_client": jira_client,
+        "updates": [],
+        "non-compliant": False,
+    }
     for check in group_checks:
         check(issues, context, dry_run)
 
