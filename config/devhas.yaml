@@ -20,7 +20,12 @@ team_automation:
         # This rule attempts to propagate the "Normal" priority down to
         # DEVHAS, and fails.
         # - check_priority
-        - check_due_date
+        - rule: check_due_date
+          kwargs:
+            # This is a CEL expression
+            # Ignore DEVHAS-606; it gets its own due date
+            ignore: >
+              .key in ["DEVHAS-606"]
         - check_target_dates
       group_rules:
         - check_rank

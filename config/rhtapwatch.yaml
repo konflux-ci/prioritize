@@ -19,7 +19,12 @@ team_automation:
             # This is a CEL expression
             ignore: '"orphan" in .labels'
         - check_priority
-        - check_due_date
+        - rule: check_due_date
+          kwargs:
+            # This is a CEL expression
+            # Ignore RHTAPWATCH-743; it gets its own due date
+            ignore: >
+              .key in ["RHTAPWATCH-743"]
         - check_target_dates
       group_rules:
         - check_rank

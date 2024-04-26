@@ -16,7 +16,12 @@ team_automation:
       rules:
         - check_parent_link
         - check_priority
-        - check_due_date
+        - rule: check_due_date
+          kwargs:
+            # This is a CEL expression
+            # Ignore RELEASE-852; it gets its own due date
+            ignore: >
+              .key in ["RELEASE-852"]
         - check_target_dates
       group_rules:
         - check_rank

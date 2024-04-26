@@ -16,7 +16,12 @@ team_automation:
       rules:
         - check_parent_link
         - check_priority
-        - check_due_date
+        - rule: check_due_date
+          kwargs:
+            # This is a CEL expression
+            # Ignore SVPI-730; it gets its own due date
+            ignore: >
+              .key in ["SVPI-730"]
         - check_target_dates
         - set_fix_version
       group_rules:
