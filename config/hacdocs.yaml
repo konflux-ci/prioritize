@@ -2,7 +2,7 @@
 jira:
   # url: https://issues.redhat.com
   project-id: HACDOCS
-  subquery: component=Konflux
+  subquery: "component in (Konflux, RHTAP)"
 comments:
   footer: >
     {color:#505f79}See also
