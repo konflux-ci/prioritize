@@ -1,0 +1,33 @@
+---
+jira:
+  # url: https://issues.redhat.com
+  project-id: HAC
+  subquery: component=Developer
+comments:
+  footer: >
+    {color:#505f79}See also
+    [template.yaml|https://github.com/konflux-ci/prioritize/blob/main/config/template.yaml],
+    the [source code|https://github.com/konflux-ci/prioritize], and the
+    [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
+    for this bot.{color}
+team_automation:
+  issues:
+    Epic:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_due_date
+        - check_target_dates
+        - set_fix_version
+      group_rules:
+        - check_rank
+    Story:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_quarter_label
+        - check_due_date
+      group_rules:
+        - check_rank
