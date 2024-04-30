@@ -6,7 +6,7 @@ jira:
 comments:
   footer: >
     {color:#505f79}See also
-    [template.yaml|https://github.com/konflux-ci/prioritize/blob/main/config/template.yaml],
+    [hac.yaml|https://github.com/konflux-ci/prioritize/blob/main/config/hac.yaml],
     the [source code|https://github.com/konflux-ci/prioritize], and the
     [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
     for this bot.{color}
