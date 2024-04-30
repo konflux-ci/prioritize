@@ -1,0 +1,39 @@
+---
+jira:
+  # url: https://issues.redhat.com
+  project-id: HACDOCS
+  subquery: component=Konflux
+comments:
+  footer: >
+    {color:#505f79}See also
+    [plnsrvce.yaml|https://github.com/konflux-ci/prioritize/blob/main/config/plnsrvce.yaml],
+    the [source code|https://github.com/konflux-ci/prioritize], and the
+    [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
+    for this bot.{color}
+team_automation:
+  issues:
+    Epic:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_due_date
+        - check_target_dates
+        - set_fix_version
+      group_rules:
+        - rule: check_rank
+          kwargs:
+            # Favor in-progress parents, despite rank
+            favor_status: true
+    Story:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_quarter_label
+        - check_due_date
+      group_rules:
+        - rule: check_rank
+          kwargs:
+            # Favor in-progress parents, despite rank
+            favor_status: true
