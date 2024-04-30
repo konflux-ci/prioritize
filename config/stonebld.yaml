@@ -1,0 +1,44 @@
+---
+jira:
+  # url: https://issues.redhat.com
+  project-id: STONEBLD
+comments:
+  footer: >
+    {color:#505f79}See also
+    [stonebld.yaml|https://github.com/konflux-ci/prioritize/blob/main/config/stonebld.yaml],
+    the [source code|https://github.com/konflux-ci/prioritize], and the
+    [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
+    for this bot.{color}
+team_automation:
+  issues:
+    Epic:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - rule: check_due_date
+          kwargs:
+            # This is a CEL expression
+            # Ignore STONEBLD-1941; it is not determined yet
+            # if Build team changes will be required
+            ignore: >
+              .key in ["STONEBLD-1941"]
+        - check_target_dates
+        - set_fix_version
+      group_rules:
+        - rule: check_rank
+          kwargs:
+            # Favor in-progress parents, despite rank
+            favor_status: true
+    Story:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_quarter_label
+        - check_due_date
+      group_rules:
+        - rule: check_rank
+          kwargs:
+            # Favor in-progress parents, despite rank
+            favor_status: true
