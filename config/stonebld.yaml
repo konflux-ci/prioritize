@@ -19,7 +19,8 @@ team_automation:
         - rule: check_due_date
           kwargs:
             # This is a CEL expression
-            # Ignore STONEBLD-1941; it is not determined yet if Build team changes will be required
+            # Ignore STONEBLD-1941; it is not determined yet
+            # if Build team changes will be required
             ignore: >
               .key in ["STONEBLD-1941"]
         - check_target_dates
