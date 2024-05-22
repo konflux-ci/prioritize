@@ -35,7 +35,7 @@ def _set_rank(
     new_ranking: list[jira.resources.Issue],
     dry_run: bool,
 ) -> None:
-    print("\n### Reranking issues ({__name__})")
+    print(f"\n### Reranking issues ({__name__})")
     previous_issue = None
     total = len(new_ranking)
     rerank = False
