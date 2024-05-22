@@ -34,6 +34,8 @@ This helps prioritize the work that is currently on-going rather than future
 improvements that have been ranked very high.
 """
 
+import difflib
+
 import jira
 
 
@@ -68,6 +70,13 @@ def _set_rank(
     previous_issue = None
     total = len(new_ranking)
     rerank = False
+
+    print(''.join(list(difflib.unified_diff(
+        [f"{issue.key} {issue.fields.summary}\n" for issue in old_ranking],
+        [f"{issue.key} {issue.fields.summary}\n" for issue in new_ranking],
+        "old_ranking",
+        "new_ranking",
+    ))))
 
     for index, issue in enumerate(new_ranking):
         if issue != old_ranking[index]:
