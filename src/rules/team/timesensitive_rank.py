@@ -66,6 +66,15 @@ def _set_rank(
 class Block:
     """A block groups a parent and all its children issues"""
 
+    def __repr__(self):
+        if self.parent_issue:
+            return (
+                f"<rules.team.timesensitive_rank.Block based on {self.parent_issue.key} "
+                + f"{self.parent_issue.fields.summary}, containing {len(self.issues)} issues>"
+            )
+        else:
+            return f"<rules.team.timesensitive_rank.Block based on <None>, containing {len(self.issues)} issues>"
+
     def __init__(self, parent):
         self.parent_issue = parent
         self.issues = []
