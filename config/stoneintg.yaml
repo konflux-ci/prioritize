@@ -15,7 +15,6 @@ team_automation:
       # collector: get_issues
       rules:
         - check_parent_link
-        - check_priority
         - rule: check_due_date
           kwargs:
             # This is a CEL expression
@@ -29,6 +28,5 @@ team_automation:
       # collector: get_issues
       rules:
         - check_parent_link
-        - check_priority
         - check_quarter_label
         - check_due_date
