@@ -14,7 +14,10 @@ team_automation:
     Epic:
       # collector: get_issues
       rules:
-        - check_parent_link
+        - rule: check_parent_link
+          kwargs:
+            # This is a CEL expression
+            ignore: '"orphan" in .labels'
         - check_priority
         - rule: check_due_date
           kwargs:
