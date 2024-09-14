@@ -39,4 +39,4 @@ team_automation:
                 "KFLUXINFRA-34", "RELEASE-852", "PLNSRVCE-1605", "HAC-5626",
                 "GITOPSRVCE-800", "EC-367", "DEVHAS-606", "ASC-454",
                 "PSSECAUT-362", "SPMM-15910", "SPMM-16583"
-              ] || .key.startsWith("MMENG-") || .key.startsWith("NCL-")
+              ] || .key.startsWith("MMENG-") || .key.startsWith("NCL-") || .key.startsWith("DESKTOP-")
