@@ -44,3 +44,24 @@ def test_rank_with_dates(issues_with_due_dates):
     assert new_ranking[2].key == "child2"
     assert new_ranking[3].key == "child3"
     assert new_ranking[4].key == "child1"
+
+
+def test_rank_with_priorities(issues_with_priorities):
+    issues = list(issues_with_priorities.values())
+    blocks = rules.team.timesensitive_rank.Blocks(issues)
+    blocks.sort()
+    new_ranking = blocks.get_issues()
+    expected = [
+        "child6",
+        "child5",
+        "child7",
+        "child8",
+        "child9",
+        "child2",
+        "child4",
+        "child3",
+        "child1",
+        "child0",
+    ]
+    actual = [issue.key for issue in new_ranking]
+    assert actual == expected

@@ -5,7 +5,7 @@ import pytest
 
 
 class MockIssue:
-    def __init__(self, idx, project, parent, rank, duedate=None):
+    def __init__(self, idx, project, parent, rank, priority="Undefined", duedate=None):
         raw = {}
         raw["Context"] = {}
         raw["Context"]["Field Ids"] = {}
@@ -21,6 +21,7 @@ class MockIssue:
         self.fields.project.key = project
         self.fields.rank = rank
         self.fields.duedate = duedate
+        self.fields.priority.name = priority
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.fields.project.key}-{self.idx}({self.fields.rank})>"
@@ -64,4 +65,33 @@ def issues_with_due_dates():
     child5 = MockIssue("child5", project, parent2, 7, duedate=duedate)
     return dict(
         child1=child1, child2=child2, child3=child3, child4=child4, child5=child5
+    )
+
+
+@pytest.fixture
+def issues_with_priorities():
+    project = "TESTPROJECT"
+    child0 = MockIssue("child0", project, None, 0, priority="Blocker")
+    parent1 = MockIssue("parent1", project, None, 2)
+    parent2 = MockIssue("parent2", project, None, 1)
+    child1 = MockIssue("child1", project, parent1, 3, priority="Undefined")
+    child2 = MockIssue("child2", project, parent1, 4, priority="Blocker")
+    child3 = MockIssue("child3", project, parent1, 5, priority="Trivial")
+    child4 = MockIssue("child4", project, parent1, 6, priority="Major")
+    child5 = MockIssue("child5", project, parent2, 7)
+    child6 = MockIssue("child6", project, parent2, 8, priority="Minor")
+    child7 = MockIssue("child7", project, parent2, 9)
+    child8 = MockIssue("child8", project, parent2, 10)
+    child9 = MockIssue("child9", project, parent2, 11)
+    return dict(
+        child0=child0,
+        child1=child1,
+        child2=child2,
+        child3=child3,
+        child4=child4,
+        child5=child5,
+        child6=child6,
+        child7=child7,
+        child8=child8,
+        child9=child9,
     )

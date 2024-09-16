@@ -9,6 +9,8 @@ import difflib
 
 import jira
 
+PRIORITIES = ["Blocker", "Critical", "Major", "Normal", "Minor", "Trivial", "Undefined"]
+
 
 def check_timesensitive_rank(
     issues: list[jira.resources.Issue],
@@ -86,7 +88,10 @@ class Block:
         self.issues = []
 
     def yield_issues(self):
-        yield from self.issues
+        def priority(issue):
+            return PRIORITIES.index(issue.fields.priority.name)
+
+        yield from sorted(self.issues, key=priority)
 
     def parent_is_inprogress(self):
         if self.parent_issue is None:
