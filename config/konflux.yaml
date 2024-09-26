@@ -43,4 +43,3 @@ team_automation:
               || .key.startsWith("MMENG-")
               || .key.startsWith("NCL-")
               || .key.startsWith("DESKTOP-")
-              || .key.startsWith("CLDX-")
