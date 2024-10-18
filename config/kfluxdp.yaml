@@ -1,0 +1,28 @@
+---
+jira:
+  # url: https://issues.redhat.com
+  project-id: KFLUXDP
+comments:
+  footer: >
+    {color:#505f79}See also
+    [kfluxvngd.yaml|https://github.com/konflux-ci/prioritize/blob/main/config/kfluxdp.yaml],
+    the [source code|https://github.com/konflux-ci/prioritize], and the
+    [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
+    for this bot.{color}
+team_automation:
+  issues:
+    Epic:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_due_date
+        - check_target_dates
+      group_rules:
+        - check_rank
+    Story:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_due_date
