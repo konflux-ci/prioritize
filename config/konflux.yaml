@@ -23,6 +23,10 @@ program_automation:
         - check_target_end_date
 team_automation:
   issues:
+    Feature:
+      # collector: get_issues
+      group_rules:
+        - check_fixversion_rank
     Epic:
       collector: get_child_issues
       rules:

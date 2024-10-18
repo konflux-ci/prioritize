@@ -1,4 +1,5 @@
 from .due_date import check_due_date
+from .fixversion_rank import check_fixversion_rank
 from .outcome_version import set_fix_version
 from .parent import check_parent_link
 from .priority import check_priority
@@ -16,4 +17,5 @@ __all__ = [
     check_rank,
     check_target_dates,
     check_timesensitive_rank,
+    check_fixversion_rank,
 ]
