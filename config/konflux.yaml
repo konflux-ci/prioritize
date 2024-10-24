@@ -25,6 +25,8 @@ team_automation:
   issues:
     Feature:
       # collector: get_issues
+      rules:
+        - check_due_date_by_fixversion
       group_rules:
         - check_fixversion_rank
     Epic:
