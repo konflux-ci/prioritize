@@ -93,7 +93,7 @@ class FixVersionBlock(Block):
     def yield_issues(self):
         """Within the fixversion block, issues get sorted by due date"""
         duedate_field_id = self.issues[0].raw["Context"]["Field Ids"]["Due Date"]
-        duedate = lambda issue: getattr(issue.fields, duedate_field_id)
+        duedate = lambda issue: getattr(issue.fields, duedate_field_id) or "9999-99-99"
         yield from sorted(self.issues, key=duedate)
 
     @property
