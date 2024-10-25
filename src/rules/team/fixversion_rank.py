@@ -91,10 +91,7 @@ class FixVersionBlock(Block):
     """A special-case block that gets ranked to the top"""
 
     def yield_issues(self):
-        """Within the fixversion block, issues get sorted by due date"""
-        duedate_field_id = self.issues[0].raw["Context"]["Field Ids"]["Due Date"]
-        duedate = lambda issue: getattr(issue.fields, duedate_field_id)
-        yield from sorted(self.issues, key=duedate)
+        yield from sorted(self.issues, key=self._earliest_fixversion_date)
 
     @property
     def rank(self):
@@ -102,6 +99,20 @@ class FixVersionBlock(Block):
 
     def claims(self, issue) -> bool:
         return self._claims(issue)
+
+    @staticmethod
+    def _earliest_fixversion_date(issue):
+        fixversions = issue.fields.fixVersions
+        if not fixversions:
+            return None
+        dates = [
+            fixversion.releaseDate
+            for fixversion in fixversions
+            if hasattr(fixversion, "releaseDate")
+        ]
+        if not dates:
+            return None
+        return sorted(dates)[0]
 
     @staticmethod
     def _claims(issue) -> bool:
