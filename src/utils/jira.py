@@ -1,11 +1,19 @@
+import os
+
 import dogpile.cache
 import jira
 
-cache = dogpile.cache.make_region().configure(
-    "dogpile.cache.dbm",
-    expiration_time=7200,
-    arguments={"filename": "jira.cache"},
-)
+if os.environ.get("PRIORITIZE_CACHE"):
+    cache_args = ("dogpile.cache.dbm",)
+    cache_kwargs = dict(
+        expiration_time=7200,
+        arguments={"filename": "jira.cache"},
+    )
+else:
+    cache_args = ("dogpile.cache.null",)
+    cache_kwargs = {}
+
+cache = dogpile.cache.make_region().configure(*cache_args, **cache_kwargs)
 
 
 def get_issues(
