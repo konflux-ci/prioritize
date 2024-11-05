@@ -119,6 +119,9 @@ def get_fields_ids(
         f["id"] for f in all_the_fields if f["name"] == "Target end"
     ][0]
     ids["Due Date"] = [f["id"] for f in all_the_fields if f["name"] == "Due Date"][0]
+    ids["RICE Score"] = [f["id"] for f in all_the_fields if f["name"] == "RICE Score"][
+        0
+    ]
 
     return ids
 

@@ -1,6 +1,15 @@
 """
-The reranking here prioritizes items with a fixVersion, but otherwise tries to
-maintain the existing ordering within a project.
+The reranking here splits the backlog into three blocks:
+
+* A first block prioritizes items with a fixVersion; items that are scheduled
+  must come first.
+* A second block leaves the existing order unchanged; we want manual control of
+  priorities.
+* A third block order the bottom third of the backlog by RICE score; for items
+  at the tail end of the backlog, manual sorting is too much trouble. Let a
+  heuristic order them so we can more conveniently pull items up into the manual
+  regime.
+
 """
 
 import datetime
@@ -70,21 +79,46 @@ def _set_rank(
 class Block:
     """A block groups issues"""
 
-    def __repr__(self):
-        return f"<rules.team.fixversion_rank.Block based on <None>, containing {len(self.issues)} issues>"
-
     def __init__(self):
         self.issues = []
+
+    def __repr__(self):
+        return f"<{type(self)}, containing {len(self.issues)} issues>"
+
+    def claims(self, issue, issues) -> bool:
+        raise NotImplementedError()
+
+
+class InertBlock(Block):
+    """An inert block doesn't modify the order of its issues"""
 
     def yield_issues(self):
         yield from self.issues
 
-    @property
-    def rank(self):
-        return 1
+    def claims(self, issue, issues) -> bool:
+        return not FixVersionBlock._claims(issue) and not RICEBlock._claims(
+            issue, issues
+        )
 
-    def claims(self, issue) -> bool:
-        return not FixVersionBlock._claims(issue)
+
+class RICEBlock(Block):
+    """A special case blocks that sorts its issues by RICE score"""
+
+    def yield_issues(self):
+        rice_field_id = self.issues[0].raw["Context"]["Field Ids"]["RICE Score"]
+        rice = lambda issue: float(getattr(issue.fields, rice_field_id) or "0")
+        yield from sorted(self.issues, key=rice, reverse=True)
+
+    def claims(self, issue, issues) -> bool:
+        return self._claims(issue, issues)
+
+    @staticmethod
+    def _claims(issue, issues) -> bool:
+        if not issues:
+            return False
+        i = issues.index(issue)
+        n = len(issues)
+        return (i / n) > 0.66
 
 
 class FixVersionBlock(Block):
@@ -96,11 +130,7 @@ class FixVersionBlock(Block):
         duedate = lambda issue: getattr(issue.fields, duedate_field_id) or "9999-99-99"
         yield from sorted(self.issues, key=duedate)
 
-    @property
-    def rank(self):
-        return float("-inf")
-
-    def claims(self, issue) -> bool:
+    def claims(self, issue, issues) -> bool:
         return self._claims(issue)
 
     @staticmethod
@@ -128,21 +158,20 @@ class FixVersionBlock(Block):
 
 class Blocks(list):
     def __init__(self, issues: list[jira.resources.Issue]) -> None:
-        self.blocks = [FixVersionBlock()]
+        self.blocks = [FixVersionBlock(), InertBlock(), RICEBlock()]
         for issue in issues:
-            self.add_issue(issue)
+            self.add_issue(issue, issues)
 
-    def add_issue(self, issue: jira.resources.Issue) -> None:
-        """Add an issue to the right block"""
+    def add_issue(
+        self, issue: jira.resources.Issue, issues: list[jira.resources.Issue]
+    ) -> None:
+        """Add an issue to the right block among a fixed set of blocks"""
         block = None
-        addBlock = True
         for block in self.blocks:
-            if block.claims(issue):
-                addBlock = False
+            if block.claims(issue, issues):
                 break
-        if addBlock:
-            block = Block()
-            self.blocks.append(block)
+        else:
+            raise RuntimeError(f"No block claims issue {issue}")
         block.issues.append(issue)
 
     def get_issues(self) -> list[jira.resources.Issue]:
@@ -152,19 +181,3 @@ class Blocks(list):
             for issue in block.yield_issues():
                 issues.append(issue)
         return issues
-
-    def sort(self):
-        self._prioritize_fixversion_block()
-
-    def _prioritize_fixversion_block(self):
-        """Issues tied to fixVersions rise to the top of the list."""
-        fixversion = []
-        other = []
-
-        for block in self.blocks:
-            if type(block) is FixVersionBlock:
-                fixversion.append(block)
-            else:
-                other.append(block)
-
-        self.blocks = fixversion + other
