@@ -25,3 +25,13 @@ team_automation:
         - check_parent_link
         - check_priority
         - check_due_date
+      group_rules:
+        - check_rank
+    Task:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+        - check_due_date
+      group_rules:
+        - check_rank
