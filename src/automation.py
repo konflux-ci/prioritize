@@ -113,6 +113,7 @@ def process_type(
         "jira_client": jira_client,
         "updates": [],
         "non-compliant": False,
+        "footer": footer,
     }
     for check in group_checks:
         check(issues, context, dry_run)
