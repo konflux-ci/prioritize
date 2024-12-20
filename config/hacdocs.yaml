@@ -19,7 +19,6 @@ team_automation:
         - check_priority
         - check_due_date
         - check_target_dates
-        - set_fix_version
       group_rules:
         - rule: check_rank
           kwargs:
