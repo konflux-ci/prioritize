@@ -150,7 +150,7 @@ class FixVersionBlock(Block):
     @staticmethod
     def _claims(issue) -> bool:
         critical_deadline = (
-            datetime.datetime.today() + datetime.timedelta(days=30 * 3)
+            datetime.datetime.today() + datetime.timedelta(days=30 * 6)
         ).strftime("%Y-%m-%d")
         date = FixVersionBlock._earliest_fixversion_date(issue)
         return date and date < critical_deadline
