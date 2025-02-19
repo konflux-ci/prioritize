@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" Apply a set of rules on a project
+"""Apply a set of rules on a project
 
 The project id and the set of rules to apply is managed via a configuration file.
 See the config directory for a template and examples.
