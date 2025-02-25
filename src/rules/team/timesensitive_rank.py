@@ -1,7 +1,15 @@
 """
-The reranking here works much the same as in the basic rank check,
-except here issues with an upcoming duedate are sorted into a
-special "timesensitive" block that is ranked to the top of the list.
+The reranking here splits the backlog into three blocks:
+
+* A first block prioritizes items with a duedate; items that are scheduled
+  must come first.
+* A second block leaves the existing order unchanged; we want manual control of
+  priorities.
+* A third block order the bottom third of the backlog by RICE score; for items
+  at the tail end of the backlog, manual sorting is too much trouble. Let a
+  heuristic order them so we can more conveniently pull items up into the manual
+  regime.
+
 """
 
 import datetime
@@ -9,14 +17,11 @@ import difflib
 
 import jira
 
-PRIORITIES = ["Blocker", "Critical", "Major", "Normal", "Minor", "Trivial", "Undefined"]
-
 
 def check_timesensitive_rank(
     issues: list[jira.resources.Issue],
     context: dict,
     dry_run: bool,
-    favor_status: bool = False,
 ) -> None:
     """Rerank all issues"""
     jira_client = context["jira_client"]
@@ -26,7 +31,7 @@ def check_timesensitive_rank(
     old_ranking = issues
 
     # Sort blocks and generate new ranking
-    blocks.sort(favor_status=favor_status)
+    blocks.sort()
     new_ranking = blocks.get_issues()
 
     # Apply new ranking
@@ -72,97 +77,86 @@ def _set_rank(
 
 
 class Block:
-    """A block groups a parent and all its children issues"""
+    """A block groups issues"""
 
-    def __repr__(self):
-        if self.parent_issue:
-            return (
-                f"<rules.team.timesensitive_rank.Block based on {self.parent_issue.key} "
-                + f"{self.parent_issue.fields.summary}, containing {len(self.issues)} issues>"
-            )
-        else:
-            return f"<rules.team.timesensitive_rank.Block based on <None>, containing {len(self.issues)} issues>"
-
-    def __init__(self, parent):
-        self.parent_issue = parent
+    def __init__(self):
         self.issues = []
 
+    def __repr__(self):
+        return f"<{type(self)}, containing {len(self.issues)} issues>"
+
+    def claims(self, issue, issues) -> bool:
+        raise NotImplementedError()
+
+
+class InertBlock(Block):
+    """An inert block doesn't modify the order of its issues"""
+
     def yield_issues(self):
-        def priority(issue):
-            return PRIORITIES.index(issue.fields.priority.name)
+        yield from self.issues
 
-        yield from sorted(self.issues, key=priority)
+    def claims(self, issue, issues) -> bool:
+        return not DueDateBlock._claims(issue) and not RICEBlock._claims(issue, issues)
 
-    def parent_is_inprogress(self):
-        if self.parent_issue is None:
+
+class RICEBlock(Block):
+    """A special case blocks that sorts its issues by RICE score"""
+
+    def yield_issues(self):
+        rice_field_id = self.issues[0].raw["Context"]["Field Ids"]["RICE Score"]
+        rice = lambda issue: float(getattr(issue.fields, rice_field_id) or "0")
+        yield from sorted(self.issues, key=rice, reverse=True)
+
+    def claims(self, issue, issues) -> bool:
+        return self._claims(issue, issues)
+
+    @staticmethod
+    def _claims(issue, issues) -> bool:
+        if not issues:
             return False
-        return self.parent_issue.fields.status.statusCategory.name == "In Progress"
-
-    @property
-    def rank(self):
-        rank_field_id = self.issues[0].raw["Context"]["Field Ids"]["Rank"]
-        if self.parent_issue:
-            return getattr(self.parent_issue.fields, rank_field_id)
-
-    def __str__(self) -> str:
-        p_key = self.parent_issue.key if self.parent_issue else None
-        i_keys = [i.key for i in self.issues]
-        return f"{p_key}: {', '.join(i_keys)}"
-
-    def claims(self, issue) -> bool:
-        parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
-        return self.parent_issue == parent_issue
+        i = issues.index(issue)
+        n = len(issues)
+        return (i / n) > 0.66
 
 
-class TimeSensitiveBlock(Block):
+class DueDateBlock(Block):
     """A special-case block that gets ranked to the top"""
 
     def yield_issues(self):
-        if not self.issues:
-            return
+        """Within the DueDate block, issues get sorted by due date"""
         duedate_field_id = self.issues[0].raw["Context"]["Field Ids"]["Due Date"]
-        duedate = lambda issue: getattr(issue.fields, duedate_field_id)
+        duedate = lambda issue: getattr(issue.fields, duedate_field_id) or "9999-99-99"
         yield from sorted(self.issues, key=duedate)
 
-    @property
-    def rank(self):
-        return float("-inf")
-
-    def parent_is_inprogress(self):
-        return False
-
-    def claims(self, issue) -> bool:
+    def claims(self, issue, issues) -> bool:
         return self._claims(issue)
 
     @staticmethod
     def _claims(issue) -> bool:
-        duedate_field_id = issue.raw["Context"]["Field Ids"]["Due Date"]
         critical_deadline = (
-            datetime.datetime.today() + datetime.timedelta(days=30 * 3)
+            datetime.datetime.today() + datetime.timedelta(days=30 * 4)
         ).strftime("%Y-%m-%d")
-        duedate = getattr(issue.fields, duedate_field_id)
-        return duedate and duedate < critical_deadline
+        duedate_field_id = issue.raw["Context"]["Field Ids"]["Due Date"]
+        date = getattr(issue.fields, duedate_field_id)
+        return date and date < critical_deadline
 
 
 class Blocks(list):
     def __init__(self, issues: list[jira.resources.Issue]) -> None:
-        self.blocks = [TimeSensitiveBlock(None)]
+        self.blocks = [DueDateBlock(), InertBlock(), RICEBlock()]
         for issue in issues:
-            self.add_issue(issue)
+            self.add_issue(issue, issues)
 
-    def add_issue(self, issue: jira.resources.Issue) -> None:
-        """Add an issue to the right block"""
+    def add_issue(
+        self, issue: jira.resources.Issue, issues: list[jira.resources.Issue]
+    ) -> None:
+        """Add an issue to the right block among a fixed set of blocks"""
         block = None
-        addBlock = True
-        parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
         for block in self.blocks:
-            if block.claims(issue):
-                addBlock = False
+            if block.claims(issue, issues):
                 break
-        if addBlock:
-            parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
-            block = Block(parent_issue)
-            self.blocks.append(block)
+        else:
+            raise RuntimeError(f"No block claims issue {issue}")
         block.issues.append(issue)
 
     def get_issues(self) -> list[jira.resources.Issue]:
@@ -172,90 +166,3 @@ class Blocks(list):
             for issue in block.yield_issues():
                 issues.append(issue)
         return issues
-
-    def sort(self, favor_status=False):
-        self._sort_by_project_rank()
-        if favor_status:
-            self._sort_by_status()
-        self._deprioritize_orphans()
-        self._prioritize_timesensitive_block()
-
-    def _sort_by_project_rank(self):
-        """Rerank blocks based on the block's project rank.
-        Blocks are switch around, but a block can only be switched
-        with a block of the same parent project.
-        """
-
-        # For each project, generate a ranked list of issues
-        per_project_ranking = {None: []}
-        for block in self.blocks:
-            parent_issue = block.parent_issue
-            if parent_issue is None:
-                project_key = None
-            else:
-                project_key = parent_issue.fields.project.key
-            project_ranking = per_project_ranking.get(project_key, [])
-
-            if block.rank is None:
-                per_project_ranking[None].append(block)
-                continue
-
-            for index, i_block in enumerate(project_ranking):
-                if block.rank < i_block.rank:
-                    project_ranking.insert(index, block)
-                    break
-            if block not in project_ranking:
-                project_ranking.append(block)
-
-            per_project_ranking[project_key] = project_ranking
-
-        # Go through all the blocks, selecting the highest issue for the
-        # given project.
-        ranked_blocks = []
-        for block in self.blocks:
-            project = None
-            if block.parent_issue:
-                project = block.parent_issue.fields.project.key
-            ranked_blocks.append(per_project_ranking[project].pop(0))
-
-        self.blocks = ranked_blocks
-
-    def _sort_by_status(self):
-        """Issues that are actively being worked on are more important
-        than issues marked as important but for which no work is on-going."""
-        inprogress = []
-        new = []
-
-        for block in self.blocks:
-            if block.parent_is_inprogress():
-                inprogress.append(block)
-            else:
-                new.append(block)
-
-        self.blocks = inprogress + new
-
-    def _deprioritize_orphans(self):
-        """Issues with no parent are deprioritized."""
-        orphans = []
-        other = []
-
-        for block in self.blocks:
-            if block.parent_issue is None:
-                orphans.append(block)
-            else:
-                other.append(block)
-
-        self.blocks = other + orphans
-
-    def _prioritize_timesensitive_block(self):
-        """Issues that are time sensitive rise to the top of the list."""
-        timesensitive = []
-        other = []
-
-        for block in self.blocks:
-            if type(block) is TimeSensitiveBlock:
-                timesensitive.append(block)
-            else:
-                other.append(block)
-
-        self.blocks = timesensitive + other
