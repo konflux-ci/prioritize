@@ -103,6 +103,8 @@ class RICEBlock(Block):
     """A special case blocks that sorts its issues by RICE score"""
 
     def yield_issues(self):
+        if not self.issues:
+            return
         rice_field_id = self.issues[0].raw["Context"]["Field Ids"]["RICE Score"]
         rice = lambda issue: float(getattr(issue.fields, rice_field_id) or "0")
         yield from sorted(self.issues, key=rice, reverse=True)
@@ -124,6 +126,8 @@ class DueDateBlock(Block):
 
     def yield_issues(self):
         """Within the DueDate block, issues get sorted by due date"""
+        if not self.issues:
+            return
         duedate_field_id = self.issues[0].raw["Context"]["Field Ids"]["Due Date"]
         duedate = lambda issue: getattr(issue.fields, duedate_field_id) or "9999-99-99"
         yield from sorted(self.issues, key=duedate)

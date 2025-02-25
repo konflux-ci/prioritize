@@ -5,12 +5,13 @@ import pytest
 
 
 class MockIssue:
-    def __init__(self, idx, project, parent, rank, priority="Undefined", duedate=None):
+    def __init__(self, idx, project, parent, rank, priority="Undefined", duedate=None, rice=None):
         raw = {}
         raw["Context"] = {}
         raw["Context"]["Field Ids"] = {}
         raw["Context"]["Field Ids"]["Rank"] = "rank"
         raw["Context"]["Field Ids"]["Due Date"] = "duedate"
+        raw["Context"]["Field Ids"]["RICE Score"] = "rice"
         raw["Context"]["Related Issues"] = {}
         raw["Context"]["Related Issues"]["Parent"] = parent
 
@@ -22,9 +23,10 @@ class MockIssue:
         self.fields.rank = rank
         self.fields.duedate = duedate
         self.fields.priority.name = priority
+        self.fields.rice = rice
 
     def __repr__(self):
-        return f"<{type(self).__name__} {self.fields.project.key}-{self.idx}({self.fields.rank})>"
+        return f"<{type(self).__name__} {self.fields.project.key}-{self.idx}({self.fields.rank}){self.fields.duedate or ''}>"
 
 
 @pytest.fixture
