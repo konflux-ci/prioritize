@@ -5,6 +5,7 @@ from .outcome_version import set_fix_version
 from .parent import check_parent_link
 from .priority import check_priority
 from .priority_from_rank import check_priority_from_rank
+from .priority_from_rank_by_component import check_priority_from_rank_by_component
 from .quarter_label import check_quarter_label
 from .rank import check_rank
 from .target_dates import check_target_dates
@@ -17,6 +18,7 @@ __all__ = [
     check_parent_link,
     check_priority,
     check_priority_from_rank,
+    check_priority_from_rank_by_component,
     check_quarter_label,
     check_rank,
     check_target_dates,
