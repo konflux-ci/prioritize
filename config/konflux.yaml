@@ -29,7 +29,7 @@ team_automation:
         - check_due_date_by_fixversion
       group_rules:
         - check_timesensitive_rank
-        - check_priority_from_rank
+        - check_priority_from_rank_by_component
     Epic:
       collector: get_child_issues
       rules:
