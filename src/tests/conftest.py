@@ -5,7 +5,9 @@ import pytest
 
 
 class MockIssue:
-    def __init__(self, idx, project, parent, rank, priority="Undefined", duedate=None, rice=None):
+    def __init__(
+        self, idx, project, parent, rank, priority="Undefined", duedate=None, rice=None
+    ):
         raw = {}
         raw["Context"] = {}
         raw["Context"]["Field Ids"] = {}
