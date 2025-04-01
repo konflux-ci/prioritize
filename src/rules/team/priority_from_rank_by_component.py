@@ -73,6 +73,8 @@ class Components:
         self = Components()
         for issue in issues:
             for component in issue.fields.components:
+                if component.raw["archived"]:
+                    continue
                 if component.name not in self.components:
                     self.components[component.name] = Component(name=component.name)
                 component = self.components[component.name]
