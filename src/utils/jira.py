@@ -88,6 +88,11 @@ def preprocess(
     fields_ids = get_fields_ids(jira_client, issues)
 
     for issue in issues:
+        for component in issue.fields.components:
+            component.raw["archived"] = is_archived_component(jira_client, component.id)
+    return issues
+
+    for issue in issues:
         issue.raw["Context"] = {}
         issue.raw["Context"]["Field Ids"] = fields_ids
         issue.raw["Context"]["Related Issues"] = {}
@@ -100,6 +105,14 @@ def preprocess(
         issue.raw["Context"]["Related Issues"]["Children"] = get_children(
             jira_client, issue
         )
+
+
+def is_archived_component(jira_client, component_id):
+    @cache.cache_on_arguments()
+    def _is_archived_component(component_id):
+        return jira_client.component(component_id).archived
+
+    return _is_archived_component(component_id)
 
 
 def get_fields_ids(
