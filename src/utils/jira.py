@@ -90,7 +90,6 @@ def preprocess(
     for issue in issues:
         for component in issue.fields.components:
             component.raw["archived"] = is_archived_component(jira_client, component.id)
-    return issues
 
     for issue in issues:
         issue.raw["Context"] = {}
