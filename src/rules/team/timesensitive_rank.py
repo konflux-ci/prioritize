@@ -17,6 +17,8 @@ import difflib
 
 import jira
 
+from utils.retry import retry
+
 
 def check_timesensitive_rank(
     issues: list[jira.resources.Issue],
@@ -71,7 +73,13 @@ def _set_rank(
             if dry_run:
                 print(f"  > {issue.key}")
             else:
-                jira_client.rank(issue=issue.key, prev_issue=previous_issue.key)
+
+                @retry()
+                def _move_rank():
+                    jira_client.rank(issue=issue.key, prev_issue=previous_issue.key)
+
+                _move_rank()
+
         previous_issue = issue
         print(f"\r{100 * (index + 1) // total}%", end="", flush=True)
 
