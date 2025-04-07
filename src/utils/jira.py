@@ -3,6 +3,8 @@ import os
 import dogpile.cache
 import jira
 
+from utils.retry import retry
+
 if os.environ.get("PRIORITIZE_CACHE"):
     cache_args = ("dogpile.cache.dbm",)
     cache_kwargs = dict(
@@ -58,22 +60,14 @@ def query_child_issues(
     return results
 
 
+@retry()
 def _search(jira_client: jira.client.JIRA, query: str, verbose: bool) -> list:
     @cache.cache_on_arguments()
     def __search(query: str, verbose: bool) -> list:
         if verbose:
             print("  ?", query)
 
-        # JIRA can be flaky, so retry a few times before failing
-        error = None
-        for _ in range(0, 5):
-            try:
-                results = jira_client.search_issues(query, maxResults=0)
-                break
-            except jira.exceptions.JIRAError as ex:
-                error = ex.text
-        else:
-            raise RuntimeError(f"'{query}' returned: {error}")
+        results = jira_client.search_issues(query, maxResults=0)
 
         if verbose:
             print("  =", f"{len(results)} results:", [r.key for r in results])
@@ -147,6 +141,7 @@ def get_parent(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
 
 
 def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
+    @retry()
     @cache.cache_on_arguments()
     def _get_blocks(keys):
         blocks = [jira_client.issue(key) for key in keys]
@@ -185,17 +180,11 @@ def refresh(issue: jira.resources.Issue) -> None:
 def update(issue: jira.resources.Issue, data: dict) -> None:
     issue_context = issue.raw.get("Context")
 
-    # JIRA can be flaky, so retry a few times before failing
-    for _ in range(0, 5):
-        try:
-            issue.update(**data)
-            break
-        except jira.exceptions.JIRAError as e:
-            # If the status code is 400, then something is wrong. Likely not a flake.
-            if e.status_code == 400:
-                raise
-            else:
-                pass
+    @retry()
+    def _update():
+        issue.update(**data)
+
+    _update()
 
     # Restore the context that was deleted by the update
     if issue_context:
