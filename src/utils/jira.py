@@ -101,7 +101,7 @@ def preprocess(
 
 
 def is_archived_component(jira_client, component_id):
-    @retry.retry()
+    @retry()
     @cache.cache_on_arguments()
     def _is_archived_component(component_id):
         return jira_client.component(component_id).archived
