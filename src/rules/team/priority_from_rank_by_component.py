@@ -16,12 +16,13 @@ def check_priority_from_rank_by_component(
     issues: list[jira.resources.Issue],
     context: dict,
     dry_run: bool,
+    ignore: list[str] = [],
 ) -> None:
     """Set priority based on rank"""
     jira_client = context["jira_client"]
     footer = context["footer"]
 
-    components = Components.from_issues(issues)
+    components = Components.from_issues(ignore, issues)
     for issue in issues:
         relevant = Components.from_subset(
             [component for component in components if issue in component]
@@ -69,11 +70,13 @@ class Components:
         self.components = {}
 
     @classmethod
-    def from_issues(cls, issues):
+    def from_issues(cls, ignore, issues):
         self = Components()
         for issue in issues:
             for component in issue.fields.components:
                 if component.raw.get("archived"):
+                    continue
+                if component.name in ignore:
                     continue
                 if component.name not in self.components:
                     self.components[component.name] = Component(name=component.name)

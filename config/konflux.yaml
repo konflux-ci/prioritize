@@ -29,7 +29,9 @@ team_automation:
         - check_due_date_by_fixversion
       group_rules:
         - check_timesensitive_rank
-        - check_priority_from_rank_by_component
+        - rule: check_priority_from_rank_by_component
+          kwargs:
+            ignore: ["user-origin"]
     Epic:
       collector: get_child_issues
       rules:
