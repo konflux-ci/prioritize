@@ -31,7 +31,7 @@ team_automation:
         - check_timesensitive_rank
         - rule: check_priority_from_rank_by_component
           kwargs:
-            ignore: ["user-origin"]
+            ignore: ["user-origin", "External"]
     Epic:
       collector: get_child_issues
       rules:
