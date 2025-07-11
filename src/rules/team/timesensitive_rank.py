@@ -15,8 +15,10 @@ The reranking here splits the backlog into three blocks:
 import datetime
 import difflib
 
+import celpy
 import jira
 
+from utils.cel import issue_as_cel
 from utils.retry import retry
 
 
@@ -24,12 +26,13 @@ def check_timesensitive_rank(
     issues: list[jira.resources.Issue],
     context: dict,
     dry_run: bool,
+    manual_override: str = None,
 ) -> None:
     """Rerank all issues"""
     jira_client = context["jira_client"]
 
     # Get blocks and current ranking
-    blocks = Blocks(issues)
+    blocks = Blocks(issues, manual_override)
     old_ranking = issues
 
     # Sort blocks and generate new ranking
@@ -100,10 +103,20 @@ class Block:
 class InertBlock(Block):
     """An inert block doesn't modify the order of its issues"""
 
+    def __init__(self, manual_override: str = None):
+        super().__init__()
+        self.manual_override = manual_override
+        if self.manual_override:
+            env = celpy.Environment()
+            self.program = env.program(env.compile(self.manual_override))
+
     def yield_issues(self):
         yield from self.issues
 
     def claims(self, issue, issues) -> bool:
+        if self.manual_override:
+            if self.program.evaluate(issue_as_cel(issue)):
+                return True
         return not DueDateBlock._claims(issue) and not RICEBlock._claims(issue, issues)
 
 
@@ -154,8 +167,10 @@ class DueDateBlock(Block):
 
 
 class Blocks(list):
-    def __init__(self, issues: list[jira.resources.Issue]) -> None:
-        self.blocks = [DueDateBlock(), InertBlock(), RICEBlock()]
+    def __init__(
+        self, issues: list[jira.resources.Issue], manual_override: str = None
+    ) -> None:
+        self.blocks = [DueDateBlock(), InertBlock(manual_override), RICEBlock()]
         for issue in issues:
             self.add_issue(issue, issues)
 

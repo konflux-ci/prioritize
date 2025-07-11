@@ -67,8 +67,14 @@ def issues_with_due_dates():
         fmt
     )
     child5 = MockIssue("child5", project, parent2, 7, duedate=duedate)
+    child6 = MockIssue("child6", project, parent2, 8, rice=10)
     return dict(
-        child1=child1, child2=child2, child3=child3, child4=child4, child5=child5
+        child1=child1,
+        child2=child2,
+        child3=child3,
+        child4=child4,
+        child5=child5,
+        child6=child6,
     )
 
 

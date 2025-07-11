@@ -28,7 +28,10 @@ team_automation:
       rules:
         - check_due_date_by_fixversion
       group_rules:
-        - check_timesensitive_rank
+        - rule: check_timesensitive_rank
+          kwargs:
+            manual_override: >
+              components.exists(c, c in ["RPM Build"])
         - rule: check_priority_from_rank_by_component
           kwargs:
             ignore: ["user-origin", "External"]
