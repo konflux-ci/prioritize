@@ -31,12 +31,7 @@ def check_target_end_date(
 
     children = issue.raw["Context"]["Related Issues"]["Children"]
     children = [
-        child
-        for child in children
-        if (
-            child.fields.status.statusCategory.name != "Done"
-            or getattr(child.fields, target_end_id)
-        )
+        child for child in children if child.fields.status.statusCategory.name != "Done"
     ]
 
     for i in children:
