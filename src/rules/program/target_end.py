@@ -10,7 +10,7 @@ today = strftime("%Y-%m-%d")
 def listify(epics):
     ids = [epic.key for epic in epics]
     if len(ids) == 0:
-        raise ValueError("Cannot listify empty list")
+        return ""
     elif len(ids) == 1:
         return ids[0]
     elif len(ids) == 2:
