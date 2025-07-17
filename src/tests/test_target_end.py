@@ -1,5 +1,3 @@
-import pytest
-
 from rules.program.target_end import listify
 from tests.conftest import MockIssue
 
@@ -9,8 +7,8 @@ def make_epics(keys):
 
 
 def test_listify_empty():
-    with pytest.raises(ValueError):
-        listify([])
+    empty = listify([])
+    assert empty == ""
 
 
 def test_listify_single():
