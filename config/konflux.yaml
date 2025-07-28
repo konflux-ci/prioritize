@@ -31,7 +31,12 @@ team_automation:
         - rule: check_timesensitive_rank
           kwargs:
             manual_override: >
-              components.exists(c, c in ["RPM Build"])
+              components.exists(c, c in [
+                "Governance", "CentOS Stream", "RHEL Process", "RPM Storage",
+                "RPM Release", "RPM Package Integration", "RPM Delivery",
+                "RPM Build", "RoK Team Transition", "RoK Migration"
+              ])
+
         - rule: check_priority_from_rank_by_component
           kwargs:
             ignore: ["user-origin", "External"]
