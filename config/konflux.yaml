@@ -39,7 +39,7 @@ team_automation:
 
         - rule: check_priority_from_rank_by_component
           kwargs:
-            ignore: ["user-origin", "External"]
+            ignore: ["user-origin", "External", "Spcloud"]
     Epic:
       collector: get_child_issues
       rules:
