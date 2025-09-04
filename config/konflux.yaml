@@ -58,3 +58,4 @@ team_automation:
               || .key.startsWith("DESKTOP-")
               || .key.startsWith("JBS-")
               || .key.startsWith("SPRHEL-")
+              || .key.startsWith("SPMM-")
