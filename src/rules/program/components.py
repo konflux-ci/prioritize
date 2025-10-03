@@ -6,6 +6,11 @@ from utils.jira import update
 def check_components(issue: jira.resources.Issue, context: dict, dry_run: bool) -> None:
     children = issue.raw["Context"]["Related Issues"]["Children"]
 
+    # Do not update components if there are no children.
+    # In that case the components should be viewed as the expected impact of the issue.
+    if not children:
+        return
+
     child_components = set(sum([i.fields.components for i in children], []))
     child_components = [c.name for c in child_components]
     child_components.sort()
