@@ -24,6 +24,11 @@ def _get_max_priority(issues: list[jira.resources.Issue]) -> str:
 def check_priority(issue: jira.resources.Issue, context: dict, dry_run: bool) -> None:
     related_issues = list(issue.raw["Context"]["Related Issues"]["Blocks"])
     parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
+
+    # Do not update priority if there are no related issues or parent issue
+    if not related_issues and not parent_issue:
+        return
+
     if parent_issue is not None:
         refresh(parent_issue)
         related_issues.append(parent_issue)
