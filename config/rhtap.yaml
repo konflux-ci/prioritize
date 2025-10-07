@@ -21,6 +21,13 @@ program_automation:
         - check_components
 team_automation:
   issues:
+    Feature:
+      # collector: get_issues
+      group_rules:
+        - rule: check_rank_with_order_by
+          kwargs:
+            order_by: fixVersion, priority, component
+            cascade: true
     Epic:
       collector: get_child_issues
       rules:

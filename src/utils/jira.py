@@ -19,20 +19,34 @@ cache = dogpile.cache.make_region().configure(*cache_args, **cache_kwargs)
 
 
 def get_issues(
-    jira_client: jira.client.JIRA, project_id: str, subquery: str, issue_type: str
+    jira_client: jira.client.JIRA,
+    project_id: str,
+    subquery: str,
+    issue_type: str,
+    order_by: str = "rank ASC",
+    verbose: bool = True,
 ) -> list:
-    result = query_issues(jira_client, project_id, subquery, issue_type)
+    result = query_issues(
+        jira_client, project_id, subquery, issue_type, order_by, verbose
+    )
     preprocess(jira_client, result)
     return result
 
 
 def query_issues(
-    jira_client: jira.client.JIRA, project_id: str, subquery: str, issue_type: str
+    jira_client: jira.client.JIRA,
+    project_id: str,
+    subquery: str,
+    issue_type: str,
+    order_by: str,
+    verbose: bool = True,
 ) -> dict:
-    query = f"project={project_id} AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
+    query = f"project={project_id} AND resolution=Unresolved AND type={issue_type}"
     if subquery:
-        query = f"{subquery} AND {query}"
-    results = _search(jira_client, query, verbose=True)
+        query += f" AND {subquery}"
+    if order_by:
+        query += f" ORDER BY {order_by}"
+    results = _search(jira_client, query, verbose)
     if not results:
         print(f"No {issue_type} found via query: {query}")
     return results
@@ -79,7 +93,7 @@ def _search(jira_client: jira.client.JIRA, query: str, verbose: bool) -> list:
 def preprocess(
     jira_client: jira.client.JIRA, issues: list[jira.resources.Issue]
 ) -> None:
-    fields_ids = get_fields_ids(jira_client, issues)
+    fields_ids = get_fields_ids(jira_client)
 
     for issue in issues:
         issue.raw["Context"] = {}
@@ -109,9 +123,7 @@ def is_archived_component(jira_client, component_id):
     return _is_archived_component(component_id)
 
 
-def get_fields_ids(
-    jira_client: jira.client.JIRA, issues: list[jira.resources.Issue]
-) -> dict[str, str]:
+def get_fields_ids(jira_client: jira.client.JIRA) -> dict[str, str]:
     ids = {}
     all_the_fields = jira_client.fields()
     # print(dir(issues[0].fields))
@@ -157,8 +169,12 @@ def get_blocks(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
     )
 
 
-def get_children(jira_client: jira.client.JIRA, issue: jira.resources.Issue):
+def get_children(
+    jira_client: jira.client.JIRA, issue: jira.resources.Issue, order_by: str = ""
+):
     query = f'"Parent Link" = {issue.key} or "Epic Link" = {issue.key}'
+    if order_by:
+        query += f" ORDER BY {order_by}"
     return _search(jira_client, query, verbose=False)
 
 
