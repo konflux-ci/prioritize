@@ -8,6 +8,7 @@ from .priority_from_rank import check_priority_from_rank
 from .priority_from_rank_by_component import check_priority_from_rank_by_component
 from .quarter_label import check_quarter_label
 from .rank import check_rank
+from .rank_with_order_by import check_rank_with_order_by
 from .target_dates import check_target_dates
 from .timesensitive_rank import check_timesensitive_rank
 
@@ -21,6 +22,7 @@ __all__ = [
     check_priority_from_rank_by_component,
     check_quarter_label,
     check_rank,
+    check_rank_with_order_by,
     check_target_dates,
     check_timesensitive_rank,
     check_fixversion_rank,
