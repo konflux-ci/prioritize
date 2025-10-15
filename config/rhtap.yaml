@@ -9,26 +9,29 @@ comments:
     the [source code|https://github.com/konflux-ci/prioritize], and the
     [runner|https://gitlab.cee.redhat.com/rbean/jira-automation/-/blob/main/.gitlab-ci.yml]
     for this bot.{color}
-program_automation:
-  issues:
-    Feature:
-      # collector: get_issues
-      rules:
-        - check_target_end_date
-    Outcome:
-      # collector: get_issues
-      rules:
-        - check_components
 team_automation:
   issues:
     Feature:
       # collector: get_issues
+      rules:
+        - set_status_from_children
       group_rules:
         - rule: check_rank_with_order_by
           kwargs:
             order_by: fixVersion, priority, component
             cascade: true
     Epic:
-      collector: get_child_issues
+      # collector: get_issues
       rules:
-        - check_due_date
+        - check_parent_link
+        # - set_fix_version
+    Story:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority
+    Bug:
+      # collector: get_issues
+      rules:
+        - check_parent_link
+        - check_priority

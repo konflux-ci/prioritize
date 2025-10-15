@@ -59,4 +59,4 @@ team_automation:
               || .key.startsWith("JBS-")
               || .key.startsWith("SPRHEL-")
               || .key.startsWith("SPMM-")
-              || .key.startsWith("PRIM-")
+              || .key.startsWith("HUM-")

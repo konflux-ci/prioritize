@@ -1,4 +1,4 @@
-FROM docker.io/python:3.11
+FROM quay.io/fedora/python-313:latest
 
 COPY "./tools" "/tmp/tools"
 
