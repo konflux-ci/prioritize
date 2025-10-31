@@ -4,9 +4,23 @@ import mock
 import pytest
 
 
+class MockComponent:
+    def __init__(self, name):
+        self.name = name
+
+
 class MockIssue:
     def __init__(
-        self, idx, project, parent, rank, priority="Undefined", duedate=None, rice=None
+        self,
+        idx,
+        project,
+        parent,
+        rank,
+        priority="Undefined",
+        duedate=None,
+        rice=None,
+        components=None,
+        labels=None,
     ):
         raw = {}
         raw["Context"] = {}
@@ -26,6 +40,8 @@ class MockIssue:
         self.fields.duedate = duedate
         self.fields.priority.name = priority
         self.fields.rice = rice
+        self.fields.components = components or []
+        self.fields.labels = labels or []
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.fields.project.key}-{self.idx}({self.fields.rank}){self.fields.duedate or ''}>"
