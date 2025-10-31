@@ -90,8 +90,12 @@ def _set_rank(
 class Block:
     """A block groups issues"""
 
-    def __init__(self):
+    def __init__(self, manual_override: str = None):
         self.issues = []
+        self.manual_override = manual_override
+        if self.manual_override:
+            env = celpy.Environment()
+            self.program = env.program(env.compile(self.manual_override))
 
     def __repr__(self):
         return f"<{type(self)}, containing {len(self.issues)} issues>"
@@ -99,24 +103,24 @@ class Block:
     def claims(self, issue, issues) -> bool:
         raise NotImplementedError()
 
+    def _matches_manual_override(self, issue) -> bool:
+        """Check if issue matches manual_override expression"""
+        if self.manual_override:
+            return self.program.evaluate(issue_as_cel(issue))
+        return False
+
 
 class InertBlock(Block):
     """An inert block doesn't modify the order of its issues"""
-
-    def __init__(self, manual_override: str = None):
-        super().__init__()
-        self.manual_override = manual_override
-        if self.manual_override:
-            env = celpy.Environment()
-            self.program = env.program(env.compile(self.manual_override))
 
     def yield_issues(self):
         yield from self.issues
 
     def claims(self, issue, issues) -> bool:
-        if self.manual_override:
-            if self.program.evaluate(issue_as_cel(issue)):
-                return True
+        # If manual_override matches, claim the issue for manual control
+        if self._matches_manual_override(issue):
+            return True
+        # Otherwise, claim issues that aren't in DueDateBlock or RICEBlock
         return not DueDateBlock._claims(issue) and not RICEBlock._claims(issue, issues)
 
 
@@ -131,6 +135,9 @@ class RICEBlock(Block):
         yield from sorted(self.issues, key=rice, reverse=True)
 
     def claims(self, issue, issues) -> bool:
+        # Don't claim if manual_override matches - let InertBlock handle it
+        if self._matches_manual_override(issue):
+            return False
         return self._claims(issue, issues)
 
     @staticmethod
@@ -154,6 +161,9 @@ class DueDateBlock(Block):
         yield from sorted(self.issues, key=duedate)
 
     def claims(self, issue, issues) -> bool:
+        # Don't claim if manual_override matches - let InertBlock handle it
+        if self._matches_manual_override(issue):
+            return False
         return self._claims(issue)
 
     @staticmethod
@@ -170,7 +180,11 @@ class Blocks(list):
     def __init__(
         self, issues: list[jira.resources.Issue], manual_override: str = None
     ) -> None:
-        self.blocks = [DueDateBlock(), InertBlock(manual_override), RICEBlock()]
+        self.blocks = [
+            DueDateBlock(manual_override),
+            InertBlock(manual_override),
+            RICEBlock(manual_override),
+        ]
         for issue in issues:
             self.add_issue(issue, issues)
 

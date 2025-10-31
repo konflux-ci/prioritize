@@ -1,6 +1,8 @@
+import datetime
 import operator as op
 
 import rules.team.timesensitive_rank
+from tests.conftest import MockComponent, MockIssue
 
 
 def test_base_sorting(issues_with_due_dates):
@@ -56,3 +58,41 @@ def test_rank_manual_override_component(issues):
         issue_list, manual_override="components.exists(c, c in ['Component2'])"
     )
     assert issues["child2"] in blocks.blocks[1].issues
+
+
+def test_manual_override_with_duedate_and_component():
+    """
+    Test that manual_override takes precedence over DueDateBlock.
+
+    Reproduces the bug where KONFLUX-3420 (component='RPM Build', has due date)
+    was being ranked despite manual_override excluding 'RPM Build' components.
+
+    The issue should go to InertBlock (manual control) even though it has a due date
+    within 120 days that would normally put it in DueDateBlock.
+    """
+    # Create an issue with BOTH a due date AND a component matching manual_override
+    fmt = "%Y-%m-%d"
+    duedate = (datetime.datetime.today() + datetime.timedelta(days=30 * 2)).strftime(
+        fmt
+    )
+    issue = MockIssue(
+        "KONFLUX-3420",
+        "KONFLUX",
+        None,
+        1,
+        duedate=duedate,
+        components=[MockComponent("RPM Build")],
+    )
+
+    # Create blocks with manual_override matching the component
+    blocks = rules.team.timesensitive_rank.Blocks(
+        [issue], manual_override="components.exists(c, c in ['RPM Build'])"
+    )
+
+    # The issue should be in InertBlock (index 1), NOT DueDateBlock (index 0)
+    assert (
+        issue in blocks.blocks[1].issues
+    ), f"Issue should be in InertBlock but is in block {[i for i, b in enumerate(blocks.blocks) if issue in b.issues]}"
+    assert (
+        issue not in blocks.blocks[0].issues
+    ), "Issue should NOT be in DueDateBlock when manual_override matches"
