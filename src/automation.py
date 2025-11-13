@@ -40,11 +40,23 @@ from utils.jira import set_non_compliant_flag
     default=os.environ.get("JIRA_TOKEN"),
     required=True,
 )
-def main(dry_run: bool, config_file: str, token: str) -> None:
+@click.option(
+    "-u",
+    "--user",
+    help="JIRA user associated with the access token",
+    default=os.environ.get("JIRA_USER"),
+    required=False,
+)
+def main(dry_run: bool, config_file: str, token: str, user: str) -> None:
     config = Config.load(config_file)
     Config.validate(config)
 
-    jira_client = jira.client.JIRA(server=config["jira"]["url"], token_auth=token)
+    if user:
+        jira_client = jira.client.JIRA(
+            server=config["jira"]["url"], basic_auth=(user, token)
+        )
+    else:
+        jira_client = jira.client.JIRA(server=config["jira"]["url"], token_auth=token)
     jira_module = importlib.import_module("utils.jira")
     rules_modules = {
         "program": importlib.import_module("rules.program"),
