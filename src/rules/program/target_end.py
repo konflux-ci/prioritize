@@ -55,7 +55,12 @@ def check_target_end_date(
     if proportion_estimated < estimation_threshold:
         target_end_date = None
 
+    # Preserve manually-set target end dates on features with no active children
+    # (If a feature has no children but has a target end date, it was set manually)
     end_date = getattr(issue.fields, target_end_id)
+    if len(children) == 0 and end_date is not None:
+        return
+
     if (target_end_date is None and end_date) or (
         target_end_date and (not end_date or end_date != target_end_date)
     ):

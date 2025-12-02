@@ -14,12 +14,12 @@ def make_child_with_target_date(key, status, target_date):
     return child
 
 
-def make_parent_with_children(key, children):
+def make_parent_with_children(key, children, target_date=None):
     """Helper to create a parent feature with children."""
     parent = MockIssue(key, "KONFLUX", None, 0)
     parent.raw["Context"]["Field Ids"]["Target End Date"] = "customfield_12345"
     parent.raw["Context"]["Related Issues"]["Children"] = children
-    setattr(parent.fields, "customfield_12345", None)
+    setattr(parent.fields, "customfield_12345", target_date)
     return parent
 
 
@@ -66,7 +66,10 @@ def test_target_end_date_with_release_pending():
 
 
 def test_target_end_date_all_done_children_excluded():
-    """Test that Done and Closed children are excluded from target date calculation."""
+    """Test that Done and Closed children are excluded from target date calculation.
+
+    When all children are Done/Closed and parent has an existing date, preserve it.
+    """
     closed = make_child_with_target_date("RELEASE-100", "Closed", "2025-01-15")
     done = make_child_with_target_date("RELEASE-101", "Done", "2025-01-20")
     parent = make_parent_with_children("KONFLUX-1234", [closed, done])
@@ -75,9 +78,9 @@ def test_target_end_date_all_done_children_excluded():
     context = {"comments": [], "updates": []}
     check_target_end_date(parent, context, dry_run=True)
 
-    # All children are Done (not Release Pending), so target date should clear
-    assert len(context["updates"]) == 1
-    assert "None" in context["updates"][0]
+    # All children are Done, so no active children - preserve the existing date
+    assert len(context["updates"]) == 0
+    assert len(context["comments"]) == 0
 
 
 def test_target_end_date_mixed_children():
@@ -98,3 +101,58 @@ def test_target_end_date_mixed_children():
     assert len(context["updates"]) == 1
     assert "2025-04-30" in context["updates"][0]
     assert "RELEASE-201" in context["updates"][0]
+
+
+def test_no_children_with_target_date_preserves_date():
+    """Feature with no children and a target end date should preserve the date."""
+    parent = make_parent_with_children("FEAT-1", children=[], target_date="2025-06-30")
+    context = {"updates": [], "comments": []}
+
+    check_target_end_date(parent, context, dry_run=True)
+
+    # Should return early without any updates
+    assert context["updates"] == []
+    assert context["comments"] == []
+
+
+def test_no_children_without_target_date_continues():
+    """Feature with no children and no target end date should not add updates."""
+    parent = make_parent_with_children("FEAT-1", children=[], target_date=None)
+    context = {"updates": [], "comments": []}
+
+    check_target_end_date(parent, context, dry_run=True)
+
+    # No target date to clear, no children to propagate from - no updates
+    assert context["updates"] == []
+    assert context["comments"] == []
+
+
+def test_only_done_children_with_target_date_preserves_date():
+    """Feature with only Done children and a target end date should preserve the date."""
+    done_child = make_child_with_target_date("CHILD-1", "Closed", "2025-05-01")
+    parent = make_parent_with_children(
+        "FEAT-1", children=[done_child], target_date="2025-06-30"
+    )
+    context = {"updates": [], "comments": []}
+
+    check_target_end_date(parent, context, dry_run=True)
+
+    # Done children are filtered out, so effectively no active children
+    # Should preserve the manually-set date
+    assert context["updates"] == []
+    assert context["comments"] == []
+
+
+def test_with_active_children_updates_date():
+    """Feature with active children should calculate target end date from children."""
+    child = make_child_with_target_date("CHILD-1", "In Progress", "2025-07-15")
+    parent = make_parent_with_children(
+        "FEAT-1", children=[child], target_date="2025-06-30"
+    )
+    context = {"updates": [], "comments": []}
+
+    check_target_end_date(parent, context, dry_run=True)
+
+    # Should update to child's date since we have an active child with estimate
+    assert len(context["updates"]) == 1
+    assert "2025-07-15" in context["updates"][0]
