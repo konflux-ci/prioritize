@@ -22,7 +22,6 @@ class MockIssue:
         components=None,
         labels=None,
         status=None,
-        status_category=None,
     ):
         raw = {}
         raw["Context"] = {}
@@ -45,11 +44,9 @@ class MockIssue:
         self.fields.components = components or []
         self.fields.labels = labels or []
 
-        # Mock status and status category
+        # Mock status
         if status is not None:
             self.fields.status.name = status
-        if status_category is not None:
-            self.fields.status.statusCategory.name = status_category
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.fields.project.key}-{self.idx}({self.fields.rank}){self.fields.duedate or ''}>"
