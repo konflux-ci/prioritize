@@ -33,8 +33,7 @@ def check_target_end_date(
     children = [
         child
         for child in children
-        if child.fields.status.statusCategory.name != "Done"
-        or child.fields.status.name == "Release Pending"
+        if child.fields.status.name not in ["Done", "Closed"]
     ]
 
     for i in children:
