@@ -5,13 +5,13 @@ Highly ranked features are critical, the lowest ranked features are minor
 
 """
 
-import jira
+from atlassian import Jira
 
 from utils.jira import update
 
 
 def check_priority_from_rank(
-    issues: list[jira.resources.Issue],
+    issues: list[dict],
     context: dict,
     dry_run: bool,
 ) -> None:
@@ -32,29 +32,29 @@ def check_priority_from_rank(
 
 
 def _set_priority(
-    jira_client: jira.client.JIRA,
-    issue: jira.resources.Issue,
+    jira_client: Jira,
+    issue: dict,
     priority: str,
     rank: int,
     total: int,
     footer: str,
     dry_run: bool,
 ) -> None:
-
-    if issue.fields.priority.name == priority:
+    current_priority = issue["fields"]["priority"]["name"]
+    if current_priority == priority:
         return
 
     message = (
-        f"Updating priority from {issue.fields.priority} to {priority} to reflect "
-        f"{issue.key}'s current rank in the unified backlog (position {rank + 1} "
+        f"Updating priority from {current_priority} to {priority} to reflect "
+        f"{issue['key']}'s current rank in the unified backlog (position {rank + 1} "
         f"of {total})"
     )
     print(message)
     if not dry_run:
-        update(issue, {"priority": {"name": priority}})
+        update(issue, {"priority": [{"set": {"name": priority}}]})
         if footer:
             message = f"{message}\n\n{footer}"
-        jira_client.add_comment(issue.key, message)
+        jira_client.issue_add_comment(issue["key"], message)
 
 
 class Block:
@@ -83,7 +83,7 @@ class Block:
 
 
 class Blocks(object):
-    def __init__(self, issues: list[jira.resources.Issue]) -> None:
+    def __init__(self, issues: list[dict]) -> None:
         self.issues = issues
         self.blocks = [
             Block(priority="Critical", threshold=0.0625),
@@ -105,9 +105,7 @@ class Blocks(object):
     def size(self):
         return len(self.issues)
 
-    def add_issue(
-        self, issue: jira.resources.Issue, issues: list[jira.resources.Issue]
-    ) -> None:
+    def add_issue(self, issue: dict, issues: list[dict]) -> None:
         """Add an issue to the right block among a fixed set of blocks"""
         block = None
         for block in self.blocks:
@@ -117,7 +115,7 @@ class Blocks(object):
             raise RuntimeError(f"No block claims issue {issue}")
         block.issues.append(issue)
 
-    def get_issues(self) -> list[jira.resources.Issue]:
+    def get_issues(self) -> list[dict]:
         """Return a flat list of issues, in the order of appearance in the blocks"""
         issues = []
         for block in self.blocks:

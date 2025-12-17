@@ -6,14 +6,13 @@ Options:
 - cascade: bool, if True, rank the children of the issues
 """
 
-import jira
+from atlassian import Jira
 
-from rules.team.rank import _set_rank
-from utils.jira import get_children, get_issues
+from utils.jira import get_children, get_issues, rank_issues
 
 
 def check_rank_with_order_by(
-    issues: list[jira.resources.Issue],
+    issues: list[dict],
     context: dict,
     dry_run: bool,
     order_by: str,
@@ -24,9 +23,9 @@ def check_rank_with_order_by(
 
     ranked_issues = get_issues(
         jira_client,
-        issues[0].get_field("project"),
+        issues[0]["fields"]["project"]["key"],
         "",
-        issues[0].get_field("issuetype"),
+        issues[0]["fields"]["issuetype"]["name"],
         order_by,
         False,
     )
@@ -36,26 +35,27 @@ def check_rank_with_order_by(
             new_ranking += _get_all_children_ranked(jira_client, issue, order_by)
     else:
         new_ranking = ranked_issues
+    rank_field_id = issues[0]["Context"]["Field Ids"]["Rank"]
     old_ranking = sorted(
         new_ranking,
-        key=lambda i: i.get_field(issues[0].raw["Context"]["Field Ids"]["Rank"]),
+        key=lambda i: i["fields"][rank_field_id],
     )
 
     # Apply new ranking
-    _set_rank(jira_client, old_ranking, new_ranking, dry_run)
+    rank_issues(new_ranking, old_ranking, dry_run)
 
 
 def _get_all_children_ranked(
-    jira_client, issue: jira.resources.Issue, order_by: str
-) -> list[jira.resources.Issue]:
+    jira_client: Jira, issue: dict, order_by: str
+) -> list[dict]:
     ranked_issues = [issue]
     children = get_children(jira_client, issue, order_by)
     # Ignored closed issues
     children = [
         c
         for c in children
-        if c.get_field("project") == issue.get_field("project")
-        and c.get_field("status").statusCategory.name != "Done"
+        if c["fields"]["project"]["key"] == issue["fields"]["project"]["key"]
+        and c["fields"]["status"]["statusCategory"]["name"] != "Done"
     ]
     for child in children:
         ranked_issues += _get_all_children_ranked(jira_client, child, order_by)

@@ -1,19 +1,19 @@
 """
 Set priority on issues based on the feature rank, split by component.
 
-Highly ranked features for any component are critical, the lowest ranked features are minor
+Highest ranked features for any component are critical, the lowest ranked features are minor
 
 """
 
 import operator as op
 
-import jira
+from atlassian import Jira
 
 from utils.jira import update
 
 
 def check_priority_from_rank_by_component(
-    issues: list[jira.resources.Issue],
+    issues: list[dict],
     context: dict,
     dry_run: bool,
     ignore: list[str] = [],
@@ -38,23 +38,23 @@ def check_priority_from_rank_by_component(
 
 
 def _set_priority(
-    jira_client: jira.client.JIRA,
-    issue: jira.resources.Issue,
+    jira_client: Jira,
+    issue: dict,
     priority: str,
     message: str,
     footer: str,
     dry_run: bool,
 ) -> None:
 
-    if issue.fields.priority.name == priority:
+    if issue["fields"]["priority"]["name"] == priority:
         return
 
     print(message)
     if not dry_run:
-        update(issue, {"priority": {"name": priority}})
+        update(issue, {"priority": [{"set": {"name": priority}}]})
         if footer:
             message = f"{message}\n\n{footer}"
-        jira_client.add_comment(issue.key, message)
+        jira_client.issue_add_comment(issue["key"], message)
 
 
 class Assessment:
@@ -73,15 +73,14 @@ class Components:
     def from_issues(cls, ignore, issues):
         self = Components()
         for issue in issues:
-            for component in issue.fields.components:
-                if component.raw.get("archived"):
+            for component in issue["fields"]["components"]:
+                component_name = component["name"]
+                if component_name in ignore:
                     continue
-                if component.name in ignore:
-                    continue
-                if component.name not in self.components:
-                    self.components[component.name] = Component(name=component.name)
-                component = self.components[component.name]
-                component.add(issue)
+                if component_name not in self.components:
+                    self.components[component_name] = Component(name=component_name)
+                comp = self.components[component_name]
+                comp.add(issue)
         return self
 
     @classmethod
@@ -100,21 +99,22 @@ class Components:
     def message(self, issue):
         assessments = self.assess(issue)
         assessments = sorted(assessments, key=op.attrgetter("percentile"))
+        current_priority = issue["fields"]["priority"]["name"]
         try:
             leader = assessments[0]
         except IndexError:
             return (
-                f"Updating priority from {issue.fields.priority} to Undefined to reflect "
-                f"the fact that {issue.key} currently has no components set."
+                f"Updating priority from {current_priority} to Undefined to reflect "
+                f"the fact that {issue['key']} currently has no components set."
             )
 
         message = (
-            f"Updating priority from {issue.fields.priority} to {self.priority(issue)} to reflect "
-            f"{issue.key}'s current rank in the {leader.component.name} backlog, position {leader.index + 1} "
+            f"Updating priority from {current_priority} to {self.priority(issue)} to reflect "
+            f"{issue['key']}'s current rank in the {leader.component.name} backlog, position {leader.index + 1} "
             f"of {leader.total}."
         )
         if len(assessments) > 1:
-            message += f" ({issue.key} is also ranked "
+            message += f" ({issue['key']} is also ranked "
             message += ", ".join(
                 f"{assessment.index + 1} out of {assessment.total} for {assessment.component.name}"
                 for assessment in assessments[1:]

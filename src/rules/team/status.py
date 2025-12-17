@@ -33,13 +33,11 @@ Note:
     correctly through the entire issue tree.
 """
 
-import jira
-
 from utils.jira import get_children
 
 
 def set_status_from_children(
-    issue: jira.resources.Issue,
+    issue: dict,
     context: dict,
     dry_run: bool,
 ) -> str:
@@ -53,7 +51,7 @@ def set_status_from_children(
     - If children have mixed statuses, parent becomes "In Progress"
 
     Args:
-        issue (jira.resources.Issue): The JIRA issue to process
+        issue (dict): The JIRA issue to process
         context (dict): Context dictionary containing 'jira_client' and 'updates' keys
         dry_run (bool): If True, only simulate the update without making actual changes
 
@@ -62,17 +60,17 @@ def set_status_from_children(
     """
     statusCategories = _get_children_status_categories(issue, context, dry_run)
     if not statusCategories:
-        return issue.get_field("status").statusCategory.name
+        return issue["fields"]["status"]["statusCategory"]["name"]
 
     new_status_category = _get_updated_status(statusCategories)
-    if new_status_category != issue.get_field("status").statusCategory.name:
+    if new_status_category != issue["fields"]["status"]["statusCategory"]["name"]:
         _update_status(issue, new_status_category, context, dry_run)
 
     return new_status_category
 
 
 def _get_children_status_categories(
-    issue: jira.resources.Issue, context: dict, dry_run: bool
+    issue: dict, context: dict, dry_run: bool
 ) -> set[str]:
     """Recursively collect status categories from all child issues.
 
@@ -81,7 +79,7 @@ def _get_children_status_categories(
     This ensures that multi-level hierarchies are properly handled.
 
     Args:
-        issue (jira.resources.Issue): The parent issue whose children to process
+        issue (dict): The parent issue whose children to process
         context (dict): Context dictionary containing JIRA client and updates list
         dry_run (bool): If True, simulate updates without making actual changes
 
@@ -120,7 +118,7 @@ def _get_updated_status(statusCategories: set[str]) -> str:
 
 
 def _update_status(
-    issue: jira.resources.Issue,
+    issue: dict,
     new_status_category: str,
     context: dict,
     dry_run: bool,
@@ -136,7 +134,7 @@ def _update_status(
     the actual JIRA status transition.
 
     Args:
-        issue (jira.resources.Issue): The JIRA issue to update
+        issue (dict): The JIRA issue to update
         new_status_category (str): Target status category ("To Do", "In Progress", "Done")
         context (dict): Context dictionary with 'jira_client' and 'updates' keys
         dry_run (bool): If True, only log the intended change without executing it
@@ -166,11 +164,4 @@ def _update_status(
 
     if not dry_run:
         jira_client = context["jira_client"]
-        transitions = jira_client.transitions(issue)
-        transition_id = next(
-            (t["id"] for t in transitions if t["name"] == update["status"]), None
-        )
-        if transition_id:
-            jira_client.transition_issue(issue.key, transition_id)
-        else:
-            print(f"!!! No '{update['status']}' transition found for {issue.key}")
+        jira_client.issue_transition(issue["key"], update["status"])

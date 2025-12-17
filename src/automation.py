@@ -13,7 +13,7 @@ import os
 import typing
 
 import click
-import jira
+from atlassian import Jira
 
 from utils.configuration import Config
 from utils.jira import set_non_compliant_flag
@@ -51,12 +51,9 @@ def main(dry_run: bool, config_file: str, token: str, user: str) -> None:
     config = Config.load(config_file)
     Config.validate(config)
 
-    if user:
-        jira_client = jira.client.JIRA(
-            server=config["jira"]["url"], basic_auth=(user, token)
-        )
-    else:
-        jira_client = jira.client.JIRA(server=config["jira"]["url"], token_auth=token)
+    jira_client = Jira(
+        url=config["jira"]["url"], cloud=True, username=user, password=token
+    )
     jira_module = importlib.import_module("utils.jira")
     rules_modules = {
         "program": importlib.import_module("rules.program"),
@@ -96,8 +93,8 @@ def main(dry_run: bool, config_file: str, token: str, user: str) -> None:
 
 
 def process_type(
-    jira_client: jira.client.JIRA,
-    issues: list[jira.resources.Issue],
+    jira_client: Jira,
+    issues: list[dict],
     checks: list[callable],
     group_checks: list[callable],
     dry_run: bool,
@@ -105,8 +102,13 @@ def process_type(
 ) -> None:
     count = len(issues)
     for index, issue in enumerate(issues):
+        if issue["fields"]["assignee"] is None:
+            assignee = "Unassigned"
+        else:
+            assignee = issue["fields"]["assignee"]["displayName"]
+        status = issue["fields"]["status"]["name"]
         print(
-            f"\n### [{index + 1}/{count}]\t{issue.key}: {issue.fields.summary}\t[{issue.fields.assignee}/{issue.fields.status}]"
+            f"\n### [{index + 1}/{count}]\t{issue['key']}: {issue['fields']['summary']}\t[{status}/{assignee}]"
         )
         context = {
             "comments": [],
@@ -131,13 +133,13 @@ def process_type(
         check(issues, context, dry_run)
 
 
-def add_comment(issue: jira.resources.Issue, context: dict, dry_run: bool, footer: str):
+def add_comment(issue: dict, context: dict, dry_run: bool, footer: str):
     if context["comments"]:
         if not dry_run:
             comment = "\n".join(context["comments"])
             if footer:
                 comment = f"{comment}\n\n{footer}"
-            context["jira_client"].add_comment(issue.key, comment)
+            context["jira_client"].issue_add_comment(issue["key"], comment)
     if context["updates"]:
         print("\n".join(context["updates"]))
 
