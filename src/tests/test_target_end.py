@@ -1,4 +1,4 @@
-from rules.program.target_end import check_target_end_date, listify
+from rules.program.target_end import _listify, check_target_end_date
 from tests.conftest import MockIssue
 
 
@@ -9,40 +9,40 @@ def make_epics(keys):
 def make_child_with_target_date(key, status, target_date):
     """Helper to create a child issue with a target date."""
     child = MockIssue(key, "RELEASE", None, 0, status=status)
-    child.raw["Context"]["Field Ids"]["Target End Date"] = "customfield_12345"
-    setattr(child.fields, "customfield_12345", target_date)
+    child["Context"]["Field Ids"]["Target End Date"] = "customfield_12345"
+    child["fields"]["customfield_12345"] = target_date
     return child
 
 
 def make_parent_with_children(key, children, target_date=None):
     """Helper to create a parent feature with children."""
     parent = MockIssue(key, "KONFLUX", None, 0)
-    parent.raw["Context"]["Field Ids"]["Target End Date"] = "customfield_12345"
-    parent.raw["Context"]["Related Issues"]["Children"] = children
-    setattr(parent.fields, "customfield_12345", target_date)
+    parent["Context"]["Field Ids"]["Target End Date"] = "customfield_12345"
+    parent["Context"]["Related Issues"]["Children"] = children
+    parent["fields"]["customfield_12345"] = target_date
     return parent
 
 
 def test_listify_empty():
-    empty = listify([])
-    assert empty == ""
+    empty = _listify([])
+    assert empty == "None"
 
 
 def test_listify_single():
     epics = make_epics(["E-1"])
-    assert listify(epics) == "E-1"
+    assert _listify(epics) == "E-1"
 
 
 def test_listify_two():
     epics = make_epics(["E-1", "E-2"])
-    assert listify(epics) == "E-1 and E-2"
+    assert _listify(epics) == "E-1 and E-2"
 
 
 def test_listify_multiple():
     epics = make_epics(["E-1", "E-2", "E-3"])
-    assert listify(epics) == "E-1, E-2 and E-3"
+    assert _listify(epics) == "E-1, E-2 and E-3"
     epics = make_epics(["A", "B", "C", "D"])
-    assert listify(epics) == "A, B, C and D"
+    assert _listify(epics) == "A, B, C and D"
 
 
 def test_target_end_date_with_release_pending():
@@ -73,7 +73,7 @@ def test_target_end_date_all_done_children_excluded():
     closed = make_child_with_target_date("RELEASE-100", "Closed", "2025-01-15")
     done = make_child_with_target_date("RELEASE-101", "Done", "2025-01-20")
     parent = make_parent_with_children("KONFLUX-1234", [closed, done])
-    setattr(parent.fields, "customfield_12345", "2025-01-10")  # Has existing date
+    parent["fields"]["customfield_12345"] = "2025-01-10"  # Has existing date
 
     context = {"comments": [], "updates": []}
     check_target_end_date(parent, context, dry_run=True)

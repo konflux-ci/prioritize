@@ -34,19 +34,16 @@ This helps prioritize the work that is currently on-going rather than future
 improvements that have been ranked very high.
 """
 
-import difflib
-
-import jira
+from utils.jira import rank_issues
 
 
 def check_rank(
-    issues: list[jira.resources.Issue],
+    issues: list[dict],
     context: dict,
     dry_run: bool,
     favor_status: bool = False,
 ) -> None:
     """Rerank all issues"""
-    jira_client = context["jira_client"]
 
     # Get blocks and current ranking
     blocks = Blocks(issues)
@@ -57,48 +54,7 @@ def check_rank(
     new_ranking = blocks.get_issues()
 
     # Apply new ranking
-    _set_rank(jira_client, old_ranking, new_ranking, dry_run)
-
-
-def _set_rank(
-    jira_client: jira.client.JIRA,
-    old_ranking: list[jira.resources.Issue],
-    new_ranking: list[jira.resources.Issue],
-    dry_run: bool,
-) -> None:
-    print(f"\n### Reranking issues ({__name__})")
-    previous_issue = None
-    total = len(new_ranking)
-    rerank = False
-
-    print(
-        "".join(
-            list(
-                difflib.unified_diff(
-                    [f"{issue.key} {issue.fields.summary}\n" for issue in old_ranking],
-                    [f"{issue.key} {issue.fields.summary}\n" for issue in new_ranking],
-                    "old_ranking",
-                    "new_ranking",
-                )
-            )
-        )
-    )
-
-    for index, issue in enumerate(new_ranking):
-        if issue != old_ranking[index]:
-            # Once we start reranking, we don't stop.
-            # This should avoid any edge case, but it's slow.
-            rerank = True
-        if rerank and previous_issue is not None:
-            if dry_run:
-                print(f"  > {issue.key} would be moved just below {previous_issue.key}")
-            else:
-                jira_client.rank(issue=issue.key, prev_issue=previous_issue.key)
-        elif dry_run:
-            print(f"  > {issue.key} is already in the right place")
-
-        previous_issue = issue
-        print(f"\r{100 * (index + 1) // total}%", end="", flush=True)
+    rank_issues(new_ranking, old_ranking, dry_run)
 
 
 class Block:
@@ -111,24 +67,25 @@ class Block:
     def parent_is_inprogress(self):
         if self.parent_issue is None:
             return False
-        return self.parent_issue.fields.status.statusCategory.name == "In Progress"
+        status = self.parent_issue["fields"]["status"]["statusCategory"]["name"]
+        return status == "In Progress"
 
     def __str__(self) -> str:
-        p_key = self.parent_issue.key if self.parent_issue else None
-        i_keys = [i.key for i in self.issues]
+        p_key = self.parent_issue["key"] if self.parent_issue else None
+        i_keys = [i["key"] for i in self.issues]
         return f"{p_key}: {', '.join(i_keys)}"
 
 
 class Blocks(list):
-    def __init__(self, issues: list[jira.resources.Issue]) -> None:
+    def __init__(self, issues: list[dict]) -> None:
         self.blocks = []
         for issue in issues:
             self.add_issue(issue)
 
-    def add_issue(self, issue: jira.resources.Issue) -> None:
+    def add_issue(self, issue: dict) -> None:
         """Add an issue to the right block"""
         block = None
-        parent_issue = issue.raw["Context"]["Related Issues"]["Parent"]
+        parent_issue = issue["Context"]["Related Issues"]["Parent"]
         if parent_issue is None:
             block = Block(None)
             self.blocks.append(block)
@@ -143,14 +100,14 @@ class Blocks(list):
                 self.blocks.append(block)
         block.issues.append(issue)
 
-    def get_issues(self) -> list[jira.resources.Issue]:
+    def get_issues(self) -> list[dict]:
         """Return a flat list of issues, in the order of appearance in the blocks"""
         issues = []
         for block in self.blocks:
             if (
                 block.parent_issue is not None
-                and block.parent_issue.fields.project.key
-                == block.issues[0].fields.project.key
+                and block.parent_issue["fields"]["project"]["key"]
+                == block.issues[0]["fields"]["project"]["key"]
             ):
                 issues.append(block.parent_issue)
             for issue in block.issues:
@@ -169,7 +126,7 @@ class Blocks(list):
         """
         if not self.blocks:
             return
-        rank_field_id = self.blocks[0].issues[0].raw["Context"]["Field Ids"]["Rank"]
+        rank_field_id = self.blocks[0].issues[0]["Context"]["Field Ids"]["Rank"]
 
         # For each project, generate a ranked list of issues
         per_project_ranking = {None: []}
@@ -179,12 +136,12 @@ class Blocks(list):
                 per_project_ranking[None].append(block)
                 continue
 
-            project_key = parent_issue.fields.project.key
+            project_key = parent_issue["fields"]["project"]["key"]
             project_ranking = per_project_ranking.get(project_key, [])
 
-            block_rank = getattr(parent_issue.fields, rank_field_id)
+            block_rank = parent_issue["fields"][rank_field_id]
             for index, i_block in enumerate(project_ranking):
-                if block_rank < getattr(i_block.parent_issue.fields, rank_field_id):
+                if block_rank < i_block.parent_issue["fields"][rank_field_id]:
                     project_ranking.insert(index, block)
                     break
             if block not in project_ranking:
@@ -198,7 +155,7 @@ class Blocks(list):
         for block in self.blocks:
             project = None
             if block.parent_issue:
-                project = block.parent_issue.fields.project.key
+                project = block.parent_issue["fields"]["project"]["key"]
             ranked_blocks.append(per_project_ranking[project].pop(0))
 
         self.blocks = ranked_blocks
