@@ -1,21 +1,18 @@
 import datetime
-import operator as op
 
 import rules.team.timesensitive_rank
 from tests.conftest import MockComponent, MockIssue
 
 
 def test_base_sorting(issues_with_due_dates):
-    issue_list = list(
-        sorted(issues_with_due_dates.values(), key=op.attrgetter("fields.rank"))
-    )
+    issue_list = list(issues_with_due_dates.values())
     blocks = rules.team.timesensitive_rank.Blocks(issue_list)
     new_ranking = blocks.get_issues()
 
     # child5 has the earliest due date, so it should be first.
     # child4 has the second earliest, so it should be second.
-    assert new_ranking[0].key == "child5"
-    assert new_ranking[1].key == "child4"
+    assert new_ranking[0]["key"] == "child5"
+    assert new_ranking[1]["key"] == "child4"
 
     # Verify block placement
     due_date_block = blocks.blocks[0]
@@ -31,8 +28,8 @@ def test_base_sorting(issues_with_due_dates):
 
 
 def test_rank_idempotence(issues):
-    issues = list(sorted(issues.values(), key=op.attrgetter("fields.rank")))
-    issues = [issue for issue in issues if issue.key not in ("child0", "child4")]
+    issue_list = list(issues.values())
+    issues = [issue for issue in issue_list if issue["key"] not in ("child0", "child4")]
     blocks = rules.team.timesensitive_rank.Blocks(issues)
     old_ranking = blocks.get_issues()
     blocks.sort()
@@ -43,7 +40,7 @@ def test_rank_idempotence(issues):
 def test_rank_manual_override(issues):
     # The "child1" issue has a due date, so it would normally be in the DueDateBlock.
     # The manual_override should force it into the InertBlock.
-    issue_list = list(sorted(issues.values(), key=op.attrgetter("fields.rank")))
+    issue_list = list(issues.values())
     blocks = rules.team.timesensitive_rank.Blocks(
         issue_list, manual_override="key == 'child1'"
     )
@@ -53,7 +50,7 @@ def test_rank_manual_override(issues):
 def test_rank_manual_override_component(issues):
     # The "child2" issue has a due date, so it would normally be in the DueDateBlock.
     # The manual_override should force it into the InertBlock because of its component.
-    issue_list = list(sorted(issues.values(), key=op.attrgetter("fields.rank")))
+    issue_list = list(issues.values())
     blocks = rules.team.timesensitive_rank.Blocks(
         issue_list, manual_override="components.exists(c, c in ['Component2'])"
     )

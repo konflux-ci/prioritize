@@ -1,18 +1,17 @@
 import datetime
 
-import mock
 import pytest
 
 
-class MockComponent:
+class MockComponent(dict):
     def __init__(self, name):
-        self.name = name
+        self["name"] = name
 
 
-class MockIssue:
+class MockIssue(dict):
     def __init__(
         self,
-        idx,
+        key,
         project,
         parent,
         rank,
@@ -23,33 +22,32 @@ class MockIssue:
         labels=None,
         status=None,
     ):
-        raw = {}
-        raw["Context"] = {}
-        raw["Context"]["Field Ids"] = {}
-        raw["Context"]["Field Ids"]["Rank"] = "rank"
-        raw["Context"]["Field Ids"]["Due Date"] = "duedate"
-        raw["Context"]["Field Ids"]["RICE Score"] = "rice"
-        raw["Context"]["Related Issues"] = {}
-        raw["Context"]["Related Issues"]["Parent"] = parent
+        self["Context"] = {}
+        self["Context"]["Field Ids"] = {}
+        self["Context"]["Field Ids"]["Rank"] = "rank"
+        self["Context"]["Field Ids"]["Due Date"] = "duedate"
+        self["Context"]["Field Ids"]["RICE Score"] = "rice"
+        self["Context"]["Related Issues"] = {}
+        self["Context"]["Related Issues"]["Parent"] = parent
 
-        self.key = idx
-        self.idx = idx
-        self.raw = raw
-        self.fields = mock.MagicMock()
-        self.fields.project.key = project
-        self.fields.rank = rank
-        self.fields.duedate = duedate
-        self.fields.priority.name = priority
-        self.fields.rice = rice
-        self.fields.components = components or []
-        self.fields.labels = labels or []
+        self["key"] = key
+        self["fields"] = {}
+        self["fields"]["project"] = {}
+        self["fields"]["project"]["key"] = project
+        self["fields"]["rank"] = rank
+        self["fields"]["duedate"] = duedate
+        self["fields"]["priority"] = {}
+        self["fields"]["priority"]["name"] = priority
+        self["fields"]["rice"] = rice
+        self["fields"]["components"] = components or [] if components else []
+        self["fields"]["labels"] = labels or [] if labels else []
 
         # Mock status
         if status is not None:
-            self.fields.status.name = status
+            self["fields"]["status"] = {"statusCategory": {"name": status}}
 
     def __repr__(self):
-        return f"<{type(self).__name__} {self.fields.project.key}-{self.idx}({self.fields.rank}){self.fields.duedate or ''}>"
+        return f"<{type(self).__name__} {self["fields"]["project"]["key"]}-{self["key"]}({self["fields"]["rank"]}){self["fields"]["duedate"] or ''}>"
 
 
 @pytest.fixture

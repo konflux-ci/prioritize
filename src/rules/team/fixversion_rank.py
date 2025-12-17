@@ -13,18 +13,16 @@ The reranking here splits the backlog into three blocks:
 """
 
 import datetime
-import difflib
 
-import jira
+from utils.jira import rank_issues
 
 
 def check_fixversion_rank(
-    issues: list[jira.resources.Issue],
+    issues: list[dict],
     context: dict,
     dry_run: bool,
 ) -> None:
     """Rerank all issues"""
-    jira_client = context["jira_client"]
 
     # Get blocks and current ranking
     blocks = Blocks(issues)
@@ -35,45 +33,7 @@ def check_fixversion_rank(
     new_ranking = blocks.get_issues()
 
     # Apply new ranking
-    _set_rank(jira_client, old_ranking, new_ranking, dry_run)
-
-
-def _set_rank(
-    jira_client: jira.client.JIRA,
-    old_ranking: list[jira.resources.Issue],
-    new_ranking: list[jira.resources.Issue],
-    dry_run: bool,
-) -> None:
-    print(f"\n### Reranking issues ({__name__})")
-    previous_issue = None
-    total = len(new_ranking)
-    rerank = False
-
-    print(
-        "".join(
-            list(
-                difflib.unified_diff(
-                    [f"{issue.key} {issue.fields.summary}\n" for issue in old_ranking],
-                    [f"{issue.key} {issue.fields.summary}\n" for issue in new_ranking],
-                    "old_ranking",
-                    "new_ranking",
-                )
-            )
-        )
-    )
-
-    for index, issue in enumerate(new_ranking):
-        if issue != old_ranking[index]:
-            # Once we start reranking, we don't stop.
-            # This should avoid any edge case, but it's slow.
-            rerank = True
-        if rerank and previous_issue is not None:
-            if dry_run:
-                print(f"  > {issue.key}")
-            else:
-                jira_client.rank(issue=issue.key, prev_issue=previous_issue.key)
-        previous_issue = issue
-        print(f"\r{100 * (index + 1) // total}%", end="", flush=True)
+    rank_issues(new_ranking, old_ranking, dry_run)
 
 
 class Block:
@@ -105,8 +65,8 @@ class RICEBlock(Block):
     """A special case blocks that sorts its issues by RICE score"""
 
     def yield_issues(self):
-        rice_field_id = self.issues[0].raw["Context"]["Field Ids"]["RICE Score"]
-        rice = lambda issue: float(getattr(issue.fields, rice_field_id) or "0")
+        rice_field_id = self.issues[0]["Context"]["Field Ids"]["RICE Score"]
+        rice = lambda issue: float(issue["fields"].get(rice_field_id, "0"))
         yield from sorted(self.issues, key=rice, reverse=True)
 
     def claims(self, issue, issues) -> bool:
@@ -126,8 +86,8 @@ class FixVersionBlock(Block):
 
     def yield_issues(self):
         """Within the fixversion block, issues get sorted by due date"""
-        duedate_field_id = self.issues[0].raw["Context"]["Field Ids"]["Due Date"]
-        duedate = lambda issue: getattr(issue.fields, duedate_field_id) or "9999-99-99"
+        duedate_field_id = self.issues[0]["Context"]["Field Ids"]["Due Date"]
+        duedate = lambda issue: issue["fields"][duedate_field_id] or "9999-99-99"
         yield from sorted(self.issues, key=duedate)
 
     def claims(self, issue, issues) -> bool:
@@ -135,13 +95,13 @@ class FixVersionBlock(Block):
 
     @staticmethod
     def _earliest_fixversion_date(issue):
-        fixversions = issue.fields.fixVersions
+        fixversions = issue["fields"]["fixVersions"]
         if not fixversions:
             return None
         dates = [
-            fixversion.releaseDate
+            fixversion.get("releaseDate")
             for fixversion in fixversions
-            if hasattr(fixversion, "releaseDate")
+            if fixversion.get("releaseDate")
         ]
         if not dates:
             return None
@@ -157,14 +117,12 @@ class FixVersionBlock(Block):
 
 
 class Blocks(list):
-    def __init__(self, issues: list[jira.resources.Issue]) -> None:
+    def __init__(self, issues: list[dict]) -> None:
         self.blocks = [FixVersionBlock(), InertBlock(), RICEBlock()]
         for issue in issues:
             self.add_issue(issue, issues)
 
-    def add_issue(
-        self, issue: jira.resources.Issue, issues: list[jira.resources.Issue]
-    ) -> None:
+    def add_issue(self, issue: dict, issues: list[dict]) -> None:
         """Add an issue to the right block among a fixed set of blocks"""
         block = None
         for block in self.blocks:
@@ -174,7 +132,7 @@ class Blocks(list):
             raise RuntimeError(f"No block claims issue {issue}")
         block.issues.append(issue)
 
-    def get_issues(self) -> list[jira.resources.Issue]:
+    def get_issues(self) -> list[dict]:
         """Return a flat list of issues, in the order of appearance in the blocks"""
         issues = []
         for block in self.blocks:

@@ -1,6 +1,6 @@
 import yaml
 
-DEFAULT_JIRA_URL = "https://issues.redhat.com"
+DEFAULT_JIRA_URL = "https://uat-2-2-redhat.atlassian.net"
 DEFAULT_SUBQUERY = ""
 
 
