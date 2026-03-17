@@ -49,9 +49,9 @@ def check_due_date_by_fixversion(
 
     if not due_date or due_date > target_due_date:
         if not due_date:
-            message = f"  * Setting Due Date to {target_due_date}, inherited from fixVersion {target_source["name"]}."
+            message = f"  * Setting Due Date to {target_due_date}, inherited from fixVersion {target_source['name']}."
         elif due_date > target_due_date:
-            message = f"  * Pulling in Due Date from {due_date} to {target_due_date}, propagated from fixVersion {target_source["name"]}."
+            message = f"  * Pulling in Due Date from {due_date} to {target_due_date}, propagated from fixVersion {target_source['name']}."
 
         context["updates"].append(message)
         context["comments"].append(message)
