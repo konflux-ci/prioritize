@@ -64,11 +64,10 @@ def get_child_issues(
 def query_child_issues(
     jira_client: Jira, project_id: str, subquery: str, issue_type: str
 ) -> list:
+    parent_filter = f"project={project_id}"
     if subquery:
-        query = f"issueFunction in portfolioChildrenOf('project={project_id} AND {subquery}')"
-    else:
-        query = f"issueFunction in portfolioChildrenOf('project={project_id}')"
-    query = f"{query} AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
+        parent_filter += f" AND {subquery}"
+    query = f"parent in ({parent_filter}) AND resolution=Unresolved AND type={issue_type} ORDER BY rank ASC"
     results = _search(jira_client, query, verbose=True)
     if not results:
         print(f"No {issue_type} found via query: {query}")
@@ -236,6 +235,7 @@ def rank_issues(
     previous_issue = None
     total = len(new_ranking)
     rerank = False
+    rank_field_id = int(old_ranking[0]["Context"]["Field Ids"]["Rank"].split("_")[1])
 
     print(
         "".join(
@@ -273,9 +273,7 @@ def rank_issues(
                 jira_client.update_rank(
                     issues_to_rank=[new_issue["key"]],
                     rank_before=previous_issue["key"],
-                    customfield_number=int(
-                        new_issue["Context"]["Field Ids"]["Rank"].split("_")[1]
-                    ),
+                    customfield_number=rank_field_id,
                 )
         elif dry_run:
             print(f"  > {new_issue['key']} is already in the right place")
