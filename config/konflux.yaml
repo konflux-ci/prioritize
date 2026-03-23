@@ -2,7 +2,7 @@
 jira:
   # url: https://issues.redhat.com
   project-id: KONFLUX
-  subquery: filter!=12422371
+  subquery: filter!=106098
 comments:
   footer: >
     {color:#505f79}See also
