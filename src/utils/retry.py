@@ -4,6 +4,10 @@ import sys
 import time
 
 
+class NoRetryError(Exception):
+    pass
+
+
 def retry(timeout=300, interval=15, jitter=0.2, wait_on=Exception):
     """A decorator that allows to retry a section of code...
     ...until success or timeout.
@@ -17,6 +21,12 @@ def retry(timeout=300, interval=15, jitter=0.2, wait_on=Exception):
                 try:
                     return function(*args, **kwargs)
                 except wait_on as e:
+                    if (
+                        hasattr(e, "response")
+                        and e.response.json().get("errorMessages", [""])[0]
+                        == "You do not have permission to edit issues in this project."
+                    ):
+                        raise NoRetryError("No permission")
                     skew = random.random() * jitter + (1 - jitter / 2)
                     print(
                         "Exception %r raised from %r.  Retry in %rs"

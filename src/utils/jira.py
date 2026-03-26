@@ -4,7 +4,7 @@ import os
 import dogpile.cache
 from atlassian import Jira
 
-from utils.retry import retry
+from utils.retry import NoRetryError, retry
 
 if os.environ.get("PRIORITIZE_CACHE"):
     cache_args = ("dogpile.cache.dbm",)
@@ -212,7 +212,18 @@ def update(issue: dict, data: dict) -> None:
     def _update():
         jira_client.edit_issue(issue_id_or_key=issue["key"], fields=data)
 
-    _update()
+    try:
+        _update()
+    except NoRetryError as e:
+        if e.message == "No permission":
+            print(
+                "You do not have permission to edit issues in the project for issue %s."
+                % issue["key"]
+            )
+        else:
+            raise
+    except Exception:
+        raise
 
 
 def set_non_compliant_flag(issue: dict, context: dict, dry_run: bool) -> None:
