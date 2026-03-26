@@ -81,9 +81,18 @@ def _search(jira_client: Jira, query: str, verbose: bool) -> list:
         if verbose:
             print("  ?", query)
 
-        response = jira_client.enhanced_jql(query)  # , expand='renderedFields'
-        results = response.get("issues", [])
-        # TODO: Handle pagination?
+        results: list = []
+        next_page_token: str | None = None
+        while True:
+            response = jira_client.enhanced_jql(
+                query, nextPageToken=next_page_token
+            )  # , expand='renderedFields'
+            if not response:
+                break
+            results.extend(response.get("issues", []))
+            next_page_token = response.get("nextPageToken")
+            if not next_page_token:
+                break
 
         if verbose:
             print("  =", f"{len(results)} results:", [r["key"] for r in results])
