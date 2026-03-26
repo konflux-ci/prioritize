@@ -21,5 +21,6 @@ team_automation:
     Story:
       # collector: get_issues
       rules:
+        - check_parent_link
         - check_quarter_label
         - check_due_date
