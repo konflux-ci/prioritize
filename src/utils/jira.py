@@ -222,7 +222,7 @@ def update(issue: dict, data: dict) -> None:
     try:
         _update()
     except NoRetryError as e:
-        if e.message == "No permission":
+        if str(e) == "No permission":
             print(
                 "You do not have permission to edit issues in the project for issue %s."
                 % issue["key"]
