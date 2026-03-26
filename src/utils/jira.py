@@ -18,6 +18,9 @@ else:
 
 cache = dogpile.cache.make_region().configure(*cache_args, **cache_kwargs)
 
+# preprocess() runs often; field metadata is fetched once per process.
+_field_ids_cache: dict[str, str] | None = None
+
 
 def get_issues(
     jira_client: Jira,
@@ -132,24 +135,28 @@ def is_archived_component(jira_client, component_id):
 
 
 def get_fields_ids(jira_client: Jira) -> dict[str, str]:
-    ids = {}
-    all_the_fields = jira_client.get_all_fields()
-    # print(dir(issues[0].fields))
-    # debug_fields = "\n".join(sorted([i["name"] for i in all_the_fields]))
-    # print(f"Fields:\n{debug_fields}")
+    global _field_ids_cache
+    if _field_ids_cache is not None:
+        return _field_ids_cache
 
-    mapping = {
-        "Rank": "Rank",
-        "Target start": "Target Start Date",
-        "Target end": "Target End Date",
-        "Due date": "Due Date",
-        "RICE Score": "RICE Score",
-        "Parent": "Parent",
-    }
-    for name, id in mapping.items():
-        ids[id] = [f["id"] for f in all_the_fields if f["name"] == name][0]
+    @retry()
+    def fetch() -> dict[str, str]:
+        ids = {}
+        all_the_fields = jira_client.get_all_fields()
+        mapping = {
+            "Rank": "Rank",
+            "Target start": "Target Start Date",
+            "Target end": "Target End Date",
+            "Due date": "Due Date",
+            "RICE Score": "RICE Score",
+            "Parent": "Parent",
+        }
+        for name, id in mapping.items():
+            ids[id] = [f["id"] for f in all_the_fields if f["name"] == name][0]
+        return ids
 
-    return ids
+    _field_ids_cache = fetch()
+    return _field_ids_cache
 
 
 def get_parent(jira_client: Jira, issue: dict) -> dict | None:
