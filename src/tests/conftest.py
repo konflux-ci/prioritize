@@ -49,7 +49,10 @@ class MockIssue(dict):
             self["fields"]["status"] = {"statusCategory": {"name": status}}
 
     def __repr__(self):
-        return f"<{type(self).__name__} {self["fields"]["project"]["key"]}-{self["key"]}({self["fields"]["rank"]}){self["fields"]["duedate"] or ''}>"
+        pk = self["fields"]["project"]["key"]
+        r = self["fields"]["rank"]
+        dd = self["fields"]["duedate"] or ""
+        return f"<{type(self).__name__} {pk}-{self['key']}({r}){dd}>"
 
 
 @pytest.fixture

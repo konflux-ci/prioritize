@@ -1,5 +1,8 @@
 import difflib
 import os
+from collections import deque
+from collections.abc import Iterator
+from typing import Any
 
 import dogpile.cache
 from atlassian import Jira
@@ -36,6 +39,118 @@ _JQL_ISSUE_FIELDS_BASE: tuple[str, ...] = (
     "duedate",
     "fixVersions",
 )
+
+
+def _jql_fields_list(jira_client: Jira) -> list[str]:
+    return list(
+        dict.fromkeys((*_JQL_ISSUE_FIELDS_BASE, *get_fields_ids(jira_client).values()))
+    )
+
+
+@retry()
+def _enhanced_jql_page(
+    jira_client: Jira,
+    query: str,
+    fields: list[str],
+    next_page_token: str | None,
+) -> dict[str, Any] | None:
+    return jira_client.enhanced_jql(
+        query, fields=fields, nextPageToken=next_page_token
+    )
+
+
+class LazyChildIssues:
+    """Direct children of a Jira issue, fetched page-by-page on iteration or ``bool``.
+
+    Does not use the full-result dogpile cache. Supports a single concurrent iterator;
+    calling ``iter()`` again while iteration is in progress raises ``RuntimeError``.
+
+    After a failed page fetch, the instance is left in a failed state and must not be reused.
+    """
+
+    __slots__ = (
+        "_jira_client",
+        "_parent",
+        "_query",
+        "_fields_list",
+        "_buffer",
+        "_cursor",
+        "_exhausted",
+        "_iterating",
+        "_failed",
+    )
+
+    def __init__(
+        self, jira_client: Jira, parent_issue: dict, order_by: str = ""
+    ) -> None:
+        self._jira_client = jira_client
+        self._parent = parent_issue
+        q = f'Parent = {parent_issue["key"]}'
+        if order_by:
+            q += f" ORDER BY {order_by}"
+        self._query = q
+        self._fields_list: list[str] | None = None
+        self._buffer: deque[dict] = deque()
+        # ``None`` = request first page; after each response, token for the next page.
+        self._cursor: str | None = None
+        self._exhausted = False
+        self._iterating = False
+        self._failed = False
+
+    def _fields(self) -> list[str]:
+        if self._fields_list is None:
+            self._fields_list = _jql_fields_list(self._jira_client)
+        return self._fields_list
+
+    def _check_ok(self) -> None:
+        if self._failed:
+            raise RuntimeError("LazyChildIssues iteration failed earlier; create a new query")
+
+    def _pull_page(self) -> None:
+        self._check_ok()
+        if self._exhausted:
+            return
+        try:
+            response = _enhanced_jql_page(
+                self._jira_client, self._query, self._fields(), self._cursor
+            )
+        except Exception:
+            self._failed = True
+            raise
+        if not response:
+            self._exhausted = True
+            return
+        issues = response.get("issues", [])
+        self._buffer.extend(issues)
+        next_tok = response.get("nextPageToken")
+        self._cursor = next_tok if next_tok else None
+        if not next_tok:
+            self._exhausted = True
+
+    def _ensure_buffer(self) -> None:
+        self._check_ok()
+        while not self._buffer and not self._exhausted:
+            self._pull_page()
+
+    def __bool__(self) -> bool:
+        # Peek at most until the first non-empty page (no full materialization).
+        self._ensure_buffer()
+        return bool(self._buffer)
+
+    def __iter__(self) -> Iterator[dict]:
+        if self._iterating:
+            raise RuntimeError("LazyChildIssues does not allow concurrent iteration")
+        self._iterating = True
+        try:
+            while True:
+                self._ensure_buffer()
+                if not self._buffer:
+                    break
+                raw = self._buffer.popleft()
+                preprocess(self._jira_client, [raw], parent=self._parent)
+                yield raw
+        finally:
+            self._iterating = False
 
 
 def get_issues(
@@ -100,11 +215,7 @@ def _search(jira_client: Jira, query: str, verbose: bool) -> list:
         if verbose:
             print("  ?", query)
 
-        fields = list(
-            dict.fromkeys(
-                (*_JQL_ISSUE_FIELDS_BASE, *get_fields_ids(jira_client).values())
-            )
-        )
+        fields = _jql_fields_list(jira_client)
 
         results: list = []
         next_page_token: str | None = None
@@ -208,13 +319,10 @@ def get_blocks(jira_client: Jira, issue: dict) -> list[dict]:
     return blocked_issues
 
 
-def get_children(jira_client: Jira, issue: dict, order_by: str = ""):
-    query = f'Parent = {issue["key"]}'
-    if order_by:
-        query += f" ORDER BY {order_by}"
-    children = _search(jira_client, query, verbose=False)
-    preprocess(jira_client, children, parent=issue)
-    return children
+def get_children(
+    jira_client: Jira, issue: dict, order_by: str = ""
+) -> LazyChildIssues:
+    return LazyChildIssues(jira_client, issue, order_by)
 
 
 def get_version(jira_client: Jira, project: dict, version: str):

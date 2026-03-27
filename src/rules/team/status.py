@@ -87,7 +87,11 @@ def _get_children_status_categories(
         set[str]: A set of unique status category names from all child issues
     """
     statusCategories = set()
-    children = get_children(context["jira_client"], issue)
+    related = issue.get("Context", {}).get("Related Issues", {})
+    if "Children" in related:
+        children = related["Children"]
+    else:
+        children = get_children(context["jira_client"], issue)
     for child in children:
         status = set_status_from_children(child, context, dry_run)
         statusCategories.add(status)
@@ -157,7 +161,9 @@ def _update_status(
     }[new_status_category]
 
     if dry_run:
-        msg = f"  * Updating Status of {issue.key} to '{update['status']}': {update['msg']}"
+        msg = (
+            f"  * Updating Status of {issue['key']} to '{update['status']}': {update['msg']}"
+        )
     else:
         msg = f"  * Updating Status to '{update['status']}': {update['msg']}"
     context["updates"].append(msg)

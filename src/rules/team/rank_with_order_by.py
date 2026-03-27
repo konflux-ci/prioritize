@@ -49,14 +49,12 @@ def _get_all_children_ranked(
     jira_client: Jira, issue: dict, order_by: str
 ) -> list[dict]:
     ranked_issues = [issue]
-    children = get_children(jira_client, issue, order_by)
-    # Ignored closed issues
-    children = [
-        c
-        for c in children
-        if c["fields"]["project"]["key"] == issue["fields"]["project"]["key"]
-        and c["fields"]["status"]["statusCategory"]["name"] != "Done"
-    ]
-    for child in children:
+    project_key = issue["fields"]["project"]["key"]
+    for child in get_children(jira_client, issue, order_by):
+        if (
+            child["fields"]["project"]["key"] != project_key
+            or child["fields"]["status"]["statusCategory"]["name"] == "Done"
+        ):
+            continue
         ranked_issues += _get_all_children_ranked(jira_client, child, order_by)
     return ranked_issues
