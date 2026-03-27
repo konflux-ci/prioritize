@@ -26,15 +26,14 @@ def check_target_end_date(issue: dict, context: dict, dry_run: bool) -> None:
     estimated_children = []
     unestimated_children = []
 
-    children = issue["Context"]["Related Issues"]["Children"]
-    children = [
-        child
-        for child in children
-        if child["fields"]["status"]["statusCategory"]["name"] not in ["Done", "Closed"]
-        and child["fields"]["issuetype"]["name"] == "Epic"
-    ]
-
-    for i in children:
+    children_src = issue["Context"]["Related Issues"]["Children"]
+    active_child_count = 0
+    for i in children_src:
+        if i["fields"]["status"]["statusCategory"]["name"] in ["Done", "Closed"]:
+            continue
+        if i["fields"]["issuetype"]["name"] != "Epic":
+            continue
+        active_child_count += 1
         related_target_end_date = i["fields"][target_end_id]
         if related_target_end_date is None:
             unestimated_children.append(i)
@@ -45,8 +44,8 @@ def check_target_end_date(issue: dict, context: dict, dry_run: bool) -> None:
             target_source = i
 
     # Only propagate estimates if "most" children have estimates
-    if len(children):
-        proportion_estimated = float(len(estimated_children)) / len(children)
+    if active_child_count:
+        proportion_estimated = float(len(estimated_children)) / active_child_count
     else:
         proportion_estimated = 0
     estimation_threshold = 0.75
@@ -56,7 +55,7 @@ def check_target_end_date(issue: dict, context: dict, dry_run: bool) -> None:
     # Preserve manually-set target end dates on features with no active children
     # (If a feature has no children but has a target end date, it was set manually)
     end_date = issue["fields"][target_end_id]
-    if len(children) == 0 and end_date is not None:
+    if active_child_count == 0 and end_date is not None:
         return
     if (target_end_date is None and end_date) or (
         target_end_date and (not end_date or end_date != target_end_date)
