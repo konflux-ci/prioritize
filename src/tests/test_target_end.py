@@ -6,9 +6,9 @@ def make_epics(keys):
     return [MockIssue(key, "TEST", None, 0) for key in keys]
 
 
-def make_child_with_target_date(key, status, target_date):
+def make_child_with_target_date(key, status, target_date, issuetype="Epic"):
     """Helper to create a child issue with a target date."""
-    child = MockIssue(key, "RELEASE", None, 0, status=status)
+    child = MockIssue(key, "RELEASE", None, 0, status=status, issuetype=issuetype)
     child["Context"]["Field Ids"]["Target End Date"] = "customfield_12345"
     child["fields"]["customfield_12345"] = target_date
     return child
@@ -156,3 +156,27 @@ def test_with_active_children_updates_date():
     # Should update to child's date since we have an active child with estimate
     assert len(context["updates"]) == 1
     assert "2025-07-15" in context["updates"][0]
+
+
+def test_subtasks_are_excluded_from_target_date_calculation():
+    """Sub-tasks should be excluded from target end date calculation, only Epics should be included.
+
+    This test verifies the fix for Jira Cloud migration where sub-tasks were incorrectly
+    included in children after migration. Only child Epics should influence target end dates.
+    """
+    epic_child = make_child_with_target_date("EPIC-1", "In Progress", "2025-08-15", issuetype="Epic")
+    subtask_child = make_child_with_target_date("SUBTASK-1", "In Progress", "2025-12-31", issuetype="Sub-task")
+
+    # Parent with both an Epic child and a Sub-task child
+    parent = make_parent_with_children(
+        "FEAT-1", children=[epic_child, subtask_child], target_date="2025-06-30"
+    )
+    context = {"updates": [], "comments": []}
+
+    check_target_end_date(parent, context, dry_run=True)
+
+    # Should only use Epic's date (2025-08-15), not Sub-task's date (2025-12-31)
+    assert len(context["updates"]) == 1
+    assert "2025-08-15" in context["updates"][0]
+    assert "2025-12-31" not in context["updates"][0]
+    assert "EPIC-1" in context["updates"][0]

@@ -21,6 +21,7 @@ class MockIssue(dict):
         components=None,
         labels=None,
         status=None,
+        issuetype="Epic",
     ):
         self["Context"] = {}
         self["Context"]["Field Ids"] = {}
@@ -41,6 +42,7 @@ class MockIssue(dict):
         self["fields"]["rice"] = rice
         self["fields"]["components"] = components or [] if components else []
         self["fields"]["labels"] = labels or [] if labels else []
+        self["fields"]["issuetype"] = {"name": issuetype}
 
         # Mock status
         if status is not None:

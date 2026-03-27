@@ -31,6 +31,7 @@ def check_target_end_date(issue: dict, context: dict, dry_run: bool) -> None:
         child
         for child in children
         if child["fields"]["status"]["statusCategory"]["name"] not in ["Done", "Closed"]
+        and child["fields"]["issuetype"]["name"] == "Epic"
     ]
 
     for i in children:
