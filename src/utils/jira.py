@@ -21,6 +21,22 @@ cache = dogpile.cache.make_region().configure(*cache_args, **cache_kwargs)
 # preprocess() runs often; field metadata is fetched once per process.
 _field_ids_cache: dict[str, str] | None = None
 
+# System fields for JQL search; custom rank/dates/RICE from get_fields_ids().
+_JQL_ISSUE_FIELDS_BASE: tuple[str, ...] = (
+    "summary",
+    "status",
+    "project",
+    "issuetype",
+    "priority",
+    "labels",
+    "components",
+    "assignee",
+    "parent",
+    "issuelinks",
+    "duedate",
+    "fixVersions",
+)
+
 
 def get_issues(
     jira_client: Jira,
@@ -84,11 +100,17 @@ def _search(jira_client: Jira, query: str, verbose: bool) -> list:
         if verbose:
             print("  ?", query)
 
+        fields = list(
+            dict.fromkeys(
+                (*_JQL_ISSUE_FIELDS_BASE, *get_fields_ids(jira_client).values())
+            )
+        )
+
         results: list = []
         next_page_token: str | None = None
         while True:
             response = jira_client.enhanced_jql(
-                query, nextPageToken=next_page_token
+                query, fields=fields, nextPageToken=next_page_token
             )  # , expand='renderedFields'
             if not response:
                 break
@@ -179,7 +201,7 @@ def get_blocks(jira_client: Jira, issue: dict) -> list[dict]:
         return blocks
 
     blocked_issue_keys = []
-    for il in issue["fields"]["issuelinks"]:
+    for il in issue["fields"].get("issuelinks", []):
         if il["type"]["name"] == "Blocks" and "outwardIssue" in il:
             blocked_issue_keys.append(il["outwardIssue"]["key"])
     blocked_issues = _get_blocks(blocked_issue_keys)
