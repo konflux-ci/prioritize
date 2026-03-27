@@ -164,8 +164,12 @@ def test_subtasks_are_excluded_from_target_date_calculation():
     This test verifies the fix for Jira Cloud migration where sub-tasks were incorrectly
     included in children after migration. Only child Epics should influence target end dates.
     """
-    epic_child = make_child_with_target_date("EPIC-1", "In Progress", "2025-08-15", issuetype="Epic")
-    subtask_child = make_child_with_target_date("SUBTASK-1", "In Progress", "2025-12-31", issuetype="Sub-task")
+    epic_child = make_child_with_target_date(
+        "EPIC-1", "In Progress", "2025-08-15", issuetype="Epic"
+    )
+    subtask_child = make_child_with_target_date(
+        "SUBTASK-1", "In Progress", "2025-12-31", issuetype="Sub-task"
+    )
 
     # Parent with both an Epic child and a Sub-task child
     parent = make_parent_with_children(
