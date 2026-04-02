@@ -293,10 +293,16 @@ def get_fields_ids(jira_client: Jira) -> dict[str, str]:
 
 
 def get_parent(jira_client: Jira, issue: dict) -> dict | None:
-    parent = None
-    if "parent" in issue["fields"].keys():
-        parent = jira_client.get_issue(issue["fields"]["parent"]["key"])
-        preprocess(jira_client, [parent])
+    if "parent" not in issue["fields"]:
+        return None
+
+    @retry()
+    @cache.cache_on_arguments()
+    def _get_issue_by_key(parent_key: str):
+        return jira_client.get_issue(parent_key)
+
+    parent = _get_issue_by_key(issue["fields"]["parent"]["key"])
+    preprocess(jira_client, [parent])
     return parent
 
 
