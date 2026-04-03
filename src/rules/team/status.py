@@ -161,9 +161,7 @@ def _update_status(
     }[new_status_category]
 
     if dry_run:
-        msg = (
-            f"  * Updating Status of {issue['key']} to '{update['status']}': {update['msg']}"
-        )
+        msg = f"  * Updating Status of {issue['key']} to '{update['status']}': {update['msg']}"
     else:
         msg = f"  * Updating Status to '{update['status']}': {update['msg']}"
     context["updates"].append(msg)

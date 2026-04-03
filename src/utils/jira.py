@@ -54,9 +54,7 @@ def _enhanced_jql_page(
     fields: list[str],
     next_page_token: str | None,
 ) -> dict[str, Any] | None:
-    return jira_client.enhanced_jql(
-        query, fields=fields, nextPageToken=next_page_token
-    )
+    return jira_client.enhanced_jql(query, fields=fields, nextPageToken=next_page_token)
 
 
 class LazyChildIssues:
@@ -104,7 +102,9 @@ class LazyChildIssues:
 
     def _check_ok(self) -> None:
         if self._failed:
-            raise RuntimeError("LazyChildIssues iteration failed earlier; create a new query")
+            raise RuntimeError(
+                "LazyChildIssues iteration failed earlier; create a new query"
+            )
 
     def _pull_page(self) -> None:
         self._check_ok()
@@ -141,6 +141,9 @@ class LazyChildIssues:
         if self._iterating:
             raise RuntimeError("LazyChildIssues does not allow concurrent iteration")
         self._iterating = True
+        return self._iter_child_issues()
+
+    def _iter_child_issues(self) -> Iterator[dict]:
         try:
             while True:
                 self._ensure_buffer()
@@ -325,9 +328,7 @@ def get_blocks(jira_client: Jira, issue: dict) -> list[dict]:
     return blocked_issues
 
 
-def get_children(
-    jira_client: Jira, issue: dict, order_by: str = ""
-) -> LazyChildIssues:
+def get_children(jira_client: Jira, issue: dict, order_by: str = "") -> LazyChildIssues:
     return LazyChildIssues(jira_client, issue, order_by)
 
 

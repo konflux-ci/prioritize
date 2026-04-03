@@ -35,9 +35,7 @@ def fake_jira():
     return FakeJira()
 
 
-def test_lazy_children_bool_peek_then_iter_no_duplicate_fetch(
-    monkeypatch, fake_jira
-):
+def test_lazy_children_bool_peek_then_iter_no_duplicate_fetch(monkeypatch, fake_jira):
     calls = []
 
     def fake_page(jira_client, query, fields, next_page_token):
@@ -154,8 +152,7 @@ def test_preprocess_assigns_lazy_children(monkeypatch, fake_jira):
         "fields": {"issuelinks": []},
     }
     preprocess(fake_jira, [issue])
-    assert isinstance(
-        issue["Context"]["Related Issues"]["Children"], LazyChildIssues)
+    assert isinstance(issue["Context"]["Related Issues"]["Children"], LazyChildIssues)
 
 
 def test_failed_fetch_marks_lazy_dead(monkeypatch, fake_jira):

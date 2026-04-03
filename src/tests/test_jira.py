@@ -27,9 +27,7 @@ def memory_jira_cache(monkeypatch):
     monkeypatch.setattr("utils.jira.cache", region)
 
 
-def test_get_parent_cache_shared_ref_one_get_issue(
-    monkeypatch, memory_jira_cache
-):
+def test_get_parent_cache_shared_ref_one_get_issue(monkeypatch, memory_jira_cache):
     get_issue_calls: list[str] = []
 
     class FakeJira:

@@ -1,4 +1,5 @@
 virtualenv
 __pycache__
 jira.cache*
+.venv
 .vim
