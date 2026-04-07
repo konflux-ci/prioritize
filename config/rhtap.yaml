@@ -1,6 +1,6 @@
 ---
 jira:
-  # url: https://issues.redhat.com
+  url: https://redhat.atlassian.net
   project-id: RHTAP
 comments:
   footer: >
@@ -15,6 +15,7 @@ team_automation:
       # collector: get_issues
       rules:
         - set_status_from_children
+        - sync_blocker_links_from_descendants
       group_rules:
         - rule: check_rank_with_order_by
           kwargs:
@@ -24,6 +25,7 @@ team_automation:
       # collector: get_issues
       rules:
         - check_parent_link
+        - sync_blocker_links_from_descendants
         # - set_fix_version
     Story:
       # collector: get_issues

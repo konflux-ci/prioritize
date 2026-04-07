@@ -179,7 +179,7 @@ def query_issues(
     order_by: str,
     verbose: bool = True,
 ) -> list:
-    query = f"project={project_id} AND resolution=Unresolved AND type={issue_type}"
+    query = f"project={project_id} AND resolution IS EMPTY AND issuetype={issue_type}"
     if subquery:
         query += f" AND {subquery}"
     if order_by:
@@ -235,6 +235,12 @@ def _search(jira_client: Jira, query: str, verbose: bool) -> list:
 
         if verbose:
             print("  =", f"{len(results)} results:", [r["key"] for r in results])
+            if not results:
+                print(
+                    "  ! If unexpected: paste the JQL into Jira (Issues → Search). "
+                    "No rows means no matching issues for this user, or issue types "
+                    "differ from Epic/Feature (team-managed projects)."
+                )
         return results
 
     return __search(query, verbose)
@@ -270,6 +276,7 @@ def is_archived_component(jira_client, component_id):
     return _is_archived_component(component_id)
 
 
+@retry()
 def get_fields_ids(jira_client: Jira) -> dict[str, str]:
     global _field_ids_cache
     if _field_ids_cache is not None:
@@ -330,6 +337,37 @@ def get_blocks(jira_client: Jira, issue: dict) -> list[dict]:
 
 def get_children(jira_client: Jira, issue: dict, order_by: str = "") -> LazyChildIssues:
     return LazyChildIssues(jira_client, issue, order_by)
+
+
+def get_descendant_issues(
+    jira_client: Jira, root_key: str, unresolved_only: bool = False
+) -> list[dict]:
+    """
+    All strict descendants of ``root_key`` (BFS): ``Parent`` and/or Epic Link to ``root_key``,
+    then ``Parent`` / Epic Link on deeper levels. Uses ``get_children`` for preprocessing.
+
+    When ``unresolved_only`` is True, resolved/closed children are excluded from traversal.
+    This avoids propagating blockers from issues that are already done.
+    """
+    collected: list[dict] = []
+    frontier = [root_key]
+    seen = {root_key}
+    while frontier:
+        parent_key = frontier.pop(0)
+        stub = {"key": parent_key, "fields": {}}
+        children = get_children(jira_client, stub)
+        for ch in children:
+            ck = ch["key"]
+            if ck in seen:
+                continue
+            if unresolved_only:
+                resolution = (ch.get("fields") or {}).get("resolution")
+                if resolution is not None:
+                    continue
+            seen.add(ck)
+            collected.append(ch)
+            frontier.append(ck)
+    return collected
 
 
 def get_version(jira_client: Jira, project: dict, version: str):
@@ -394,6 +432,8 @@ def set_non_compliant_flag(issue: dict, context: dict, dry_run: bool) -> None:
 def rank_issues(
     new_ranking: list[dict], old_ranking: list[dict], dry_run: bool
 ) -> None:
+    if not new_ranking or not old_ranking:
+        return
     jira_client = new_ranking[0]["_jira_client"]
     print(f"\n### Reranking issues ({__name__})")
     previous_issue = None

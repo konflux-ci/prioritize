@@ -1,6 +1,6 @@
 ---
 jira:
-  # url: https://issues.redhat.com
+  url: https://redhat.atlassian.net
   project-id: RELEASE
 comments:
   footer: >
@@ -23,6 +23,7 @@ team_automation:
             ignore: >
               .key in ["RELEASE-852"]
         - check_target_dates
+        - sync_blocker_links_from_descendants
       group_rules:
         - check_rank
     Story:

@@ -1,6 +1,6 @@
 ---
 jira:
-  # url: https://issues.redhat.com
+  url: https://redhat.atlassian.net
   project-id: KFLUXDP
 comments:
   footer: >
@@ -17,5 +17,9 @@ team_automation:
         - check_priority
         - check_due_date
         - check_target_dates
+        - sync_blocker_links_from_descendants
       group_rules:
         - check_rank
+    Feature:
+      rules:
+        - sync_blocker_links_from_descendants

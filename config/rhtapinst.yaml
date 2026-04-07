@@ -1,6 +1,6 @@
 ---
 jira:
-  # url: https://issues.redhat.com
+  url: https://redhat.atlassian.net
   project-id: RHTAPINST
 comments:
   footer: >
@@ -19,6 +19,7 @@ team_automation:
         - check_due_date
         - check_target_dates
         - set_fix_version
+        - sync_blocker_links_from_descendants
       group_rules:
         - rule: check_rank
           kwargs:

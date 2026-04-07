@@ -122,6 +122,9 @@ def process_type(
         set_non_compliant_flag(issue, context, dry_run)
         add_comment(issue, context, dry_run, footer)
 
+    if not issues:
+        return
+
     context = {
         "comments": [],
         "jira_client": jira_client,
