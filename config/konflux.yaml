@@ -1,6 +1,6 @@
 ---
 jira:
-  # url: https://issues.redhat.com
+  url: https://redhat.atlassian.net
   project-id: KONFLUX
   subquery: filter!=106098
 comments:
@@ -27,6 +27,7 @@ team_automation:
       # collector: get_issues
       rules:
         - check_due_date_by_fixversion
+        - sync_blocker_links_from_descendants
       group_rules:
         - rule: check_timesensitive_rank
           kwargs:
@@ -41,8 +42,8 @@ team_automation:
           kwargs:
             ignore: ["user-origin"]
     Epic:
-      collector: get_child_issues
       rules:
+        - sync_blocker_links_from_descendants
         - rule: check_due_date
           kwargs:
             # This is a CEL expression

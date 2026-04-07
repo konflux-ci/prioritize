@@ -1,6 +1,6 @@
 ---
 jira:
-  # url: https://issues.redhat.com
+  url: https://redhat.atlassian.net
   project-id: EC
 comments:
   footer: >
@@ -13,7 +13,8 @@ team_automation:
   issues:
     Epic:
       # collector: get_issues
-      rules: []
+      rules:
+        - sync_blocker_links_from_descendants
       group_rules:
         - check_rank
     Story:

@@ -1,3 +1,4 @@
+from .blocker_propagation import sync_blocker_links_from_descendants
 from .due_date import check_due_date
 from .due_date_by_fixversion import check_due_date_by_fixversion
 from .fixversion_rank import check_fixversion_rank
@@ -14,6 +15,7 @@ from .target_dates import check_target_dates
 from .timesensitive_rank import check_timesensitive_rank
 
 __all__ = [
+    sync_blocker_links_from_descendants,
     check_due_date,
     check_due_date_by_fixversion,
     set_fix_version,

@@ -1,6 +1,6 @@
 ---
 jira:
-  # url: https://issues.redhat.com
+  url: https://redhat.atlassian.net
   project-id: STONEINTG
 comments:
   footer: >
@@ -22,6 +22,7 @@ team_automation:
             ignore: >
               .key in ["STONEINTG-767"]
         - check_target_dates
+        - sync_blocker_links_from_descendants
       group_rules:
         - check_rank
     Story:
