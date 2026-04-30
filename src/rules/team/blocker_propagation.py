@@ -9,6 +9,7 @@ import os
 from typing import Any, Collection
 
 from atlassian import Jira
+from requests.exceptions import HTTPError
 
 from utils.jira import get_descendant_issues
 
@@ -28,17 +29,25 @@ def _is_blocked_by_link_type(link_type: dict | None) -> bool:
     return False
 
 
+def _is_done(issue_stub: dict) -> bool:
+    """True when a linked-issue stub has statusCategory 'Done' (i.e. resolved)."""
+    status = ((issue_stub or {}).get("fields") or {}).get("status") or {}
+    return (status.get("statusCategory") or {}).get("name", "").lower() == "done"
+
+
 def _blocking_issue_keys(issue: dict) -> list[str]:
     """
     Keys of issues that *block* ``issue`` (i.e. ``issue`` is blocked by them).
+    Resolved blockers (statusCategory == Done) are excluded.
     """
     keys: list[str] = []
     my_key = issue["key"]
     for il in issue["fields"].get("issuelinks", []) or []:
         if not _is_blocked_by_link_type(il.get("type")):
             continue
-        inward_key = (il.get("inwardIssue") or {}).get("key")
-        if inward_key and inward_key != my_key:
+        inward = il.get("inwardIssue") or {}
+        inward_key = inward.get("key")
+        if inward_key and inward_key != my_key and not _is_done(inward):
             keys.append(inward_key)
     return keys
 
@@ -157,7 +166,6 @@ def sync_blocker_links_from_descendants(
     for blocker in to_add:
         if blocker == my_key:
             continue
-        # Jira Cloud create: inwardIssue=blocker, outwardIssue=blocked party
         payload = {
             "type": {"name": link_type_name},
             "inwardIssue": {"key": blocker},
@@ -167,8 +175,11 @@ def sync_blocker_links_from_descendants(
         if dry_run:
             context["updates"].append(f"{msg} [dry-run, not created]")
         else:
-            jira_client.create_issue_link(payload)
-            context["updates"].append(f"{msg} [created]")
+            try:
+                jira_client.create_issue_link(payload)
+                context["updates"].append(f"{msg} [created]")
+            except HTTPError as exc:
+                context["updates"].append(f"{msg} [failed: {exc}]")
 
     for blocker in to_remove:
         link_id = current_by_blocker[blocker]
@@ -176,5 +187,8 @@ def sync_blocker_links_from_descendants(
         if dry_run:
             context["updates"].append(f"{msg} [dry-run, not removed]")
         else:
-            jira_client.remove_issue_link(link_id)
-            context["updates"].append(f"{msg} [removed]")
+            try:
+                jira_client.remove_issue_link(link_id)
+                context["updates"].append(f"{msg} [removed]")
+            except HTTPError as exc:
+                context["updates"].append(f"{msg} [failed: {exc}]")
