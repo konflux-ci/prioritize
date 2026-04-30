@@ -25,12 +25,20 @@ def _issue(
     return {"key": key, "fields": fields}
 
 
-def _blocked_by_link(my_key: str, blocker: str, link_id: str = "10001") -> dict:
+def _blocked_by_link(
+    my_key: str, blocker: str, link_id: str = "10001", *, resolved: bool = False
+) -> dict:
     """Simulate Jira Cloud GET: ``my_key`` is blocked by ``blocker``."""
+    category = "Done" if resolved else "In Progress"
     return {
         "id": link_id,
         "type": {"name": "Blocks"},
-        "inwardIssue": {"key": blocker},
+        "inwardIssue": {
+            "key": blocker,
+            "fields": {
+                "status": {"name": category, "statusCategory": {"name": category}}
+            },
+        },
     }
 
 
@@ -91,6 +99,50 @@ def test_inward_blocks_entries_with_ids():
     )
     entries = bp._inward_blocks_entries(epic)
     assert set(entries) == {("KFLUXDP-99", "1"), ("KFLUXDP-98", "2")}
+
+
+def test_blocking_issue_keys_skips_resolved_blockers():
+    """Resolved blockers (statusCategory == Done) should not be propagated."""
+    open_link = _blocked_by_link("X-1", "OPEN-1")
+    closed_link = _blocked_by_link("X-1", "CLOSED-1", resolved=True)
+    issue = _issue("X-1", "Story", issuelinks=[open_link, closed_link])
+    assert bp._blocking_issue_keys(issue) == ["OPEN-1"]
+
+
+def test_blocking_issue_keys_no_status_field_treated_as_open():
+    """If the linked issue stub has no status data, treat it as open (safe default)."""
+    link_no_status = {
+        "id": "1",
+        "type": {"name": "Blocks"},
+        "inwardIssue": {"key": "NO-STATUS"},
+    }
+    issue = _issue("X-1", "Story", issuelinks=[link_no_status])
+    assert bp._blocking_issue_keys(issue) == ["NO-STATUS"]
+
+
+@mock.patch("rules.team.blocker_propagation._batch_merge_issuelinks")
+@mock.patch("rules.team.blocker_propagation.get_descendant_issues")
+def test_sync_skips_resolved_blockers(mock_desc, _mock_batch):
+    """Resolved blockers on descendants should not propagate to the parent."""
+    epic = _issue("KFLUXDP-30", "Epic", issuelinks=[])
+    child = _issue(
+        "KFLUXDP-11",
+        "Story",
+        issuelinks=[
+            _blocked_by_link("KFLUXDP-11", "OPEN-1"),
+            _blocked_by_link("KFLUXDP-11", "CLOSED-1", resolved=True),
+        ],
+    )
+    mock_desc.return_value = [child]
+
+    jira_client = mock.Mock()
+    context = {"jira_client": jira_client, "updates": []}
+    bp.sync_blocker_links_from_descendants(epic, context, dry_run=False)
+
+    calls = jira_client.create_issue_link.call_args_list
+    assert len(calls) == 1
+    payload = calls[0][0][0]
+    assert payload["inwardIssue"]["key"] == "OPEN-1"
 
 
 @mock.patch("rules.team.blocker_propagation._batch_merge_issuelinks")
@@ -431,6 +483,71 @@ def test_sync_ignores_resolved_children(mock_desc, _mock_batch):
     payload = calls[0][0][0]
     assert payload["inwardIssue"]["key"] == "B2"
     assert payload["outwardIssue"]["key"] == "KFLUXDP-30"
+
+
+@mock.patch("rules.team.blocker_propagation._batch_merge_issuelinks")
+@mock.patch("rules.team.blocker_propagation.get_descendant_issues")
+def test_sync_create_link_permission_error_continues(mock_desc, _mock_batch):
+    """Permission error on create_issue_link should log warning, not crash."""
+    from requests.exceptions import HTTPError
+
+    epic = _issue("KFLUXDP-30", "Epic", issuelinks=[])
+    s1 = _issue(
+        "KFLUXDP-11", "Story", issuelinks=[_blocked_by_link("KFLUXDP-11", "EXT-1")]
+    )
+    s2 = _issue(
+        "KFLUXDP-12", "Story", issuelinks=[_blocked_by_link("KFLUXDP-12", "EXT-2")]
+    )
+    mock_desc.return_value = [s1, s2]
+
+    resp = mock.Mock()
+    resp.status_code = 403
+    jira_client = mock.Mock()
+    jira_client.create_issue_link.side_effect = [
+        HTTPError("No Link Issue Permission for issue 'EXT-1'", response=resp),
+        None,
+    ]
+    context = {"jira_client": jira_client, "updates": []}
+    bp.sync_blocker_links_from_descendants(epic, context, dry_run=False)
+
+    assert jira_client.create_issue_link.call_count == 2
+    assert any(
+        "error" in u.lower() or "failed" in u.lower() for u in context["updates"]
+    )
+    assert any("[created]" in u for u in context["updates"])
+
+
+@mock.patch("rules.team.blocker_propagation._batch_merge_issuelinks")
+@mock.patch("rules.team.blocker_propagation.get_descendant_issues")
+def test_sync_remove_link_permission_error_continues(mock_desc, _mock_batch):
+    """Permission error on remove_issue_link should log warning, not crash."""
+    from requests.exceptions import HTTPError
+
+    epic = _issue(
+        "KFLUXDP-30",
+        "Epic",
+        issuelinks=[
+            _blocked_by_link("KFLUXDP-30", "STALE-1", "50"),
+            _blocked_by_link("KFLUXDP-30", "STALE-2", "51"),
+        ],
+    )
+    mock_desc.return_value = [_issue("KFLUXDP-11", "Story", issuelinks=[])]
+
+    resp = mock.Mock()
+    resp.status_code = 403
+    jira_client = mock.Mock()
+    jira_client.remove_issue_link.side_effect = [
+        HTTPError("No Link Issue Permission", response=resp),
+        None,
+    ]
+    context = {"jira_client": jira_client, "updates": []}
+    bp.sync_blocker_links_from_descendants(epic, context, dry_run=False)
+
+    assert jira_client.remove_issue_link.call_count == 2
+    assert any(
+        "error" in u.lower() or "failed" in u.lower() for u in context["updates"]
+    )
+    assert any("[removed]" in u for u in context["updates"])
 
 
 def _child(key, resolution=None):
