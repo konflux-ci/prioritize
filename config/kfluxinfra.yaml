@@ -19,12 +19,7 @@ team_automation:
             # This is a CEL expression
             ignore: '"orphan" in .labels'
         - check_priority
-        - rule: check_due_date
-          kwargs:
-            # This is a CEL expression
-            # Ignore KFLUXINFRA-34; it gets its own due date
-            ignore: >
-              .key in ["KFLUXINFRA-34"]
+        - check_due_date
         - check_target_dates
         - sync_blocker_links_from_descendants
       group_rules:
@@ -36,5 +31,3 @@ team_automation:
         - check_priority
         - check_quarter_label
         - check_due_date
-      group_rules:
-        - check_rank
