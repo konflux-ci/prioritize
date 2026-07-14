@@ -27,7 +27,6 @@ team_automation:
       # collector: get_issues
       rules:
         - check_due_date_by_fixversion
-        - sync_blocker_links_from_descendants
       group_rules:
         - rule: check_timesensitive_rank
           kwargs:

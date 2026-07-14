@@ -295,23 +295,17 @@ def test_inward_blocks_entries_skips_non_blocks_and_missing_id():
 
 @mock.patch("rules.team.blocker_propagation._batch_merge_issuelinks")
 @mock.patch("rules.team.blocker_propagation.get_descendant_issues")
-def test_sync_works_on_feature(mock_desc, _mock_batch):
-    """Feature is a valid container type, not just Epic."""
+def test_sync_skips_feature(mock_desc, _mock_batch):
+    """Feature is not a container type; blocker propagation only applies to Epics."""
     feature = _issue("KONFLUX-100", "Feature", issuelinks=[])
-    child = _issue(
-        "KONFLUX-200", "Epic", issuelinks=[_blocked_by_link("KONFLUX-200", "EXT-1")]
-    )
-    mock_desc.return_value = [child]
+    mock_desc.return_value = []
 
     jira_client = mock.Mock()
     context = {"jira_client": jira_client, "updates": []}
     bp.sync_blocker_links_from_descendants(feature, context, dry_run=False)
 
-    calls = jira_client.create_issue_link.call_args_list
-    assert len(calls) == 1
-    payload = calls[0][0][0]
-    assert payload["inwardIssue"]["key"] == "EXT-1"
-    assert payload["outwardIssue"]["key"] == "KONFLUX-100"
+    mock_desc.assert_not_called()
+    jira_client.create_issue_link.assert_not_called()
 
 
 @mock.patch("rules.team.blocker_propagation._batch_merge_issuelinks")

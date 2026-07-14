@@ -20,6 +20,3 @@ team_automation:
         - sync_blocker_links_from_descendants
       group_rules:
         - check_rank
-    Feature:
-      rules:
-        - sync_blocker_links_from_descendants
