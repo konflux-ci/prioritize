@@ -1,6 +1,6 @@
 """
 When a child issue gains or loses a "is blocked by" link, the next bot run adds or removes the
-corresponding link on the parent issue so parents reflect rollup state.
+corresponding link on the parent Epic so Epics reflect rollup state.
 """
 
 from __future__ import annotations
@@ -110,12 +110,12 @@ def sync_blocker_links_from_descendants(
     **_: Any,
 ) -> None:
     """
-    For an Epic or Feature, set "is blocked by" to exactly the union of blockers on
-    all descendant issues (any issue type under the Parent hierarchy), adding and
+    For an Epic, set "is blocked by" to exactly the union of blockers on all
+    descendant issues (any issue type under the Parent hierarchy), adding and
     removing Issue Links as needed.
     """
     if container_issue_types is None:
-        container_issue_types = ("Epic", "Feature")
+        container_issue_types = ("Epic",)
 
     itype = (issue["fields"].get("issuetype") or {}).get("name")
     if itype not in container_issue_types:
